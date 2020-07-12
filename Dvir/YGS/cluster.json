@@ -1,0 +1,137 @@
+{
+    "__default__": {
+        "q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "YGS.def",
+        "cores"		: 2,
+        "bl"		: 2,
+        "memory"    : "8G",
+        "time"      : "2:00:00"
+    },
+    "filter_female_reads_quality": {
+    	"q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "YGS.fFilt",
+        "cores"		: 8,
+        "bl"		: 8,
+        "memory"    : "32G",
+        "time"		: "6:00:00"
+    },
+	"female_kmer_fasta": {
+	    "q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "YGS.fKmer",
+        "cores"		: 8,
+        "bl"		: 8,
+        "memory"    : "32G",
+        "time"		: "6:00:00"
+	},
+	"female_bitarray": {
+		"q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "YGS.fBit",
+        "cores"		: 8,
+        "bl"		: 8,
+        "memory"    : "32G",
+        "time"		: "6:00:00"
+	},
+    "filter_male_reads_quality": {
+        "q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "YGS.mFilt",
+        "cores"     : 8,
+        "bl"        : 8,
+        "memory"    : "32G",
+        "time"      : "6:00:00"
+    },
+    "male_kmer_fasta": {
+        "q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "YGS.mKmer",
+        "cores"     : 8,
+        "bl"        : 8,
+        "memory"    : "32G",
+        "time"      : "6:00:00"
+    },
+    "male_bitarray": {
+        "q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "YGS.mBit",
+        "cores"     : 8,
+        "bl"        : 8,
+        "memory"    : "32G",
+        "time"      : "6:00:00"
+    },
+	"genome_kmers": {
+		"q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "sm.gKmers",
+        "cores"		: 8,
+        "bl"		: 8,
+        "memory"    : "32G",
+        "time"		: "12:00:00"
+	},
+	"final_run": {
+		"q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "YGS.final",
+        "cores"		: 4,
+        "bl"		: 4,
+        "memory"    : "32G",
+        "time"		: "12:00:00"
+	},
+    "bt2_index": {
+        "q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "index",
+        "cores"     : 4,
+        "bl"        : 4,
+        "memory"    : "32G",
+        "time"      : "03:00:00"
+    },
+    "bowtie2_male": {
+        "q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "bowtieM",
+        "cores"     : 4,
+        "bl"        : 4,
+        "memory"    : "32G",
+        "time"      : "12:00:00"
+    },
+    "qualiMap_male": {
+        "q"         : "regular.q@cbsubscb01,regular.q@cbsubscb02,regular.q@cbsubscb03,regular.q@cbsubscb04,regular.q@cbsubscb05,regular.q@cbsubscb06,regular.q@cbsubscb07,regular.q@cbsubscb08",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "qMapM",
+        "cores"     : 4,
+        "bl"        : 4,
+        "memory"    : "32G",
+        "time"      : "6:00:00"
+    },
+    "bowtie2_female": {
+        "q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "bowtieF",
+        "cores"     : 4,
+        "bl"        : 4,
+        "memory"    : "32G",
+        "time"      : "12:00:00"
+    },
+    "qualiMap_female": {
+        "q"         : "regular.q@cbsubscb01,regular.q@cbsubscb02,regular.q@cbsubscb03,regular.q@cbsubscb04,regular.q@cbsubscb05,regular.q@cbsubscb06,regular.q@cbsubscb07,regular.q@cbsubscb08",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "qMapF",
+        "cores"     : 4,
+        "bl"        : 4,
+        "memory"    : "32G",
+        "time"      : "6:00:00"
+    },
+    "multiQC": {
+        "q"         : "regular.q",
+        "output"    : "/home/ya76/GitHub_Repositories/YGS.PacBio.Dvir/cluster_logs/",
+        "jname"     : "multiQC",
+        "cores"     : 2,
+        "bl"        : 2,
+        "memory"    : "8G",
+        "time"      : "1:00:00"
+    }
+}

@@ -1,0 +1,504 @@
+"""
+--- Snakemake workflow to run YGS
+"""
+
+import json
+from os.path import join, basename, dirname
+from os import getcwd
+from subprocess import check_output
+
+##--------------------------------------------------------------------------------------##
+## Global config files: 
+##--------------------------------------------------------------------------------------##
+
+configfile: 'config.yml'
+
+## set the usr and job environments for each job (specific for CBSU qsub jobs)
+USER = os.environ.get('USER')
+JOB_ID = os.environ.get('JOB_ID')
+
+# Full path to a folder where final output files will be deposited.
+OUT_DIR = config['OUT_DIR']
+WORK_DIR = config['WORK_DIR']
+
+# Samples and their corresponding filenames.
+# males
+female = config['female_reads']                
+# males
+male = config['male_reads']       
+
+# load genome
+genome = config['genome']
+
+## Create the final output directory if it doesn't already exist
+if not os.path.exists(OUT_DIR):
+            os.makedirs(OUT_DIR)
+
+## In case fsrv5 needs to be mounted
+# os.system("/programs/bin/labutils/mount_server cbsufsrv5 /data1")
+
+##--------------------------------------------------------------------------------------##
+## Functions
+##--------------------------------------------------------------------------------------##
+
+# To print process messages
+def message(x):
+  print()
+
+# To remove suffix from a string
+def rstrip(text, suffix):
+    if not text.endswith(suffix):
+        return text
+    return text[:len(text)-len(suffix)]
+##--------------------------------------------------------------------------------------##
+
+
+## Final expected output(s)
+rule all: 
+    input:
+    	join(OUT_DIR, 'result', rstrip(os.path.basename(genome), '.fa') + '_female_male.final_result'),
+        join(OUT_DIR, 'Bowtie2', 'female.coverage.txt'),
+        join(OUT_DIR, 'Bowtie2', 'male.coverage.txt'),
+        join(OUT_DIR, 'MultiQC', 'multiqc_report.html')
+
+
+
+
+rule filter_female_reads_quality:
+    input:
+        r1 = female
+    output:
+        join(OUT_DIR, 'jellyfish', 'femaleKmers.jelly')
+    log:
+        join(OUT_DIR, 'jellyfish', 'filter_female_reads_quality.log')
+    benchmark:
+        join(OUT_DIR, 'jellyfish', 'filter_female_reads_quality.benchmark.tsv')
+    message: 
+        """--- filtering female Illumina short reads at Phred score of 20 """
+    run:
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cp {input.r1} ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && zcat *fastq.gz |'
+                ' jellyfish count'
+                ' -m 15'
+                ' -o femaleKmers.jelly'
+                ' -c 4'
+                ' -s 10G'
+                ' -t 4'
+                ' --canonical'
+                ' --min-qual-char=5' 
+                ' /dev/fd/0')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'femaleKmers.jelly') + ' ' + join(OUT_DIR, 'jellyfish'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+
+rule female_kmer_fasta:
+    input:
+        fJelly = rules.filter_female_reads_quality.output
+    output:
+        join(OUT_DIR, 'kmer_fasta', 'female.fasta.gz')
+    log:
+        join(OUT_DIR, 'kmer_fasta', 'female_kmer_fasta.log')
+    benchmark:
+        join(OUT_DIR, 'kmer_fasta', 'female_kmer_fasta.benchmark.tsv')
+    message: 
+        """--- filtering at a minimum frequency of 5, and production of the short read female fasta file """
+    run:
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cp {input.fJelly} ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && jellyfish dump'
+                ' --lower-count=5'
+                ' femaleKmers.jelly |'
+                ' gzip -c >'
+                ' female.fasta.gz')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'female.fasta.gz') + ' ' + join(OUT_DIR, 'kmer_fasta'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+
+rule female_bitarray:
+    input:
+        trace = rules.female_kmer_fasta.output
+    output:
+        join(OUT_DIR, 'Bitarray', 'female.trace.gz')
+    log:
+        join(OUT_DIR, 'Bitarray', 'female_bitarray.log')
+    benchmark:
+        join(OUT_DIR, 'Bitarray', 'female_bitarray.benchmark.tsv')
+    message: 
+        """--- production of the bitarray representing the female k‐mers """
+    run:
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cp {input.trace} ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && YGS.pl'
+                ' kmer_size=15'
+                ' mode=trace'
+                ' trace=female.fasta.gz')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'female.trace.gz') + ' ' + join(OUT_DIR, 'Bitarray'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+
+
+rule filter_male_reads_quality:
+    input:
+        r1 = male
+    output:
+        join(OUT_DIR, 'jellyfish', 'maleKmers.jelly')
+    log:
+        join(OUT_DIR, 'jellyfish', 'filter_male_reads_quality.log')
+    benchmark:
+        join(OUT_DIR, 'jellyfish', 'filter_male_reads_quality.benchmark.tsv')
+    message: 
+        """--- filtering male Illumina short reads at Phred score of 20 """
+    run:
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cp {input.r1} ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && zcat *.fastq.gz |'
+                ' jellyfish count'
+                ' -m 15'
+                ' -o maleKmers.jelly'
+                ' -c 4'
+                ' -s 10G'
+                ' -t 4'
+                ' --canonical'
+                ' --min-qual-char=5' 
+                ' /dev/fd/0')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'maleKmers.jelly') + ' ' + join(OUT_DIR, 'jellyfish'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+
+rule male_kmer_fasta:
+    input:
+        fJelly = rules.filter_male_reads_quality.output
+    output:
+        join(OUT_DIR, 'kmer_fasta', 'male.fasta.gz')
+    log:
+        join(OUT_DIR, 'kmer_fasta', 'male_kmer_fasta.log')
+    benchmark:
+        join(OUT_DIR, 'kmer_fasta', 'male_kmer_fasta.benchmark.tsv')
+    message: 
+        """--- filtering at a minimum frequency of 5, and production of the short‐read male fasta file """
+    run:
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cp {input.fJelly} ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && jellyfish dump'
+                ' --lower-count=5'
+                ' maleKmers.jelly |'
+                ' gzip -c >'
+                ' male.fasta.gz')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'male.fasta.gz') + ' ' + join(OUT_DIR, 'kmer_fasta'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+
+
+rule male_bitarray:
+    input:
+        trace = rules.male_kmer_fasta.output
+    output:
+        join(OUT_DIR, 'Bitarray', 'male.trace.gz')
+    log:
+        join(OUT_DIR, 'Bitarray', 'male_bitarray.log')
+    benchmark:
+        join(OUT_DIR, 'Bitarray', 'male_bitarray.benchmark.tsv')
+    message: 
+        """--- production of the bit‐array representing the male k‐mers """
+    run:
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cp {input.trace} ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && YGS.pl'
+                ' kmer_size=15'
+                ' mode=trace'
+                ' trace=male.fasta.gz')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'male.trace.gz') + ' ' + join(OUT_DIR, 'Bitarray'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+
+rule genome_kmers:
+    input:
+        assembly = genome
+    output:
+    	pbBitarray = join(OUT_DIR, 'genome', rstrip(os.path.basename(genome), '.fa') + '.gen_rep.gz'),
+        ctg = join(OUT_DIR, 'genome', rstrip(os.path.basename(genome), '.fa') + '.ctg_rep.gz'),
+        contigResult = join(OUT_DIR, 'genome', rstrip(os.path.basename(genome), '.fa') + '.contig_result')
+    log:
+        join(OUT_DIR, 'genome','genome_kmers.log')
+    benchmark:
+        join(OUT_DIR, 'genome','genome_kmers.benchmark.tsv')
+    message: 
+        """--- production of the bit‐array representing repetitive k-mers of the genome  """
+    run:
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cp {input.assembly} ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && YGS.pl'
+                ' kmer_size=15'
+                ' mode=contig'
+                ' contig=' + os.path.basename(genome))
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, '*gz') + ' ' + join(WORK_DIR, USER, JOB_ID, '*.contig_result') + ' ' + join(OUT_DIR, 'genome'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule final_run:
+    input:
+        femTrace = rules.female_bitarray.output,
+        genomeKmers = rules.genome_kmers.output.pbBitarray,
+        maleTrace = rules.male_bitarray.output,
+        assembly = genome
+    output:
+    	finalResult = join(OUT_DIR, 'result', rstrip(os.path.basename(genome), '.fa') + '_female_male.final_result')
+    log:
+        join(OUT_DIR, 'result','final_run.log')
+    benchmark:
+        join(OUT_DIR, 'result','final_run.benchmark.tsv')
+    message: 
+        """--- final YGS run  """
+    run:
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cp {input.femTrace} {input.genomeKmers} {input.maleTrace} {input.assembly} ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && YGS.pl'
+                ' kmer_size=15'
+                ' mode=final_run'
+                ' contig=' + os.path.basename(genome) +
+                ' trace=female.trace.gz'
+                ' male_trace=male.trace.gz'
+                ' gen_rep='+ rstrip(os.path.basename(genome), '.fa') + '.gen_rep.gz')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, '*.final_result') + ' ' + join(OUT_DIR, 'result'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+   
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+rule bt2_index:
+    input:
+        assembly = genome
+    output: 
+        index = join(OUT_DIR, 'genome', 'bt2_index', rstrip(os.path.basename(genome), '.fa') + '.rev.1.bt2')
+    log:
+        join(OUT_DIR, 'genome', 'bt2_index.log')
+    benchmark:
+        join(OUT_DIR, 'genome', 'bt2_index.benchmark.tsv')
+    message: 
+        """--- building bowtie2 index  """
+    run:
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cp {input.assembly} ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && bowtie2-build ' + os.path.basename(genome) + 
+                ' ' + rstrip(os.path.basename(genome), '.fa'))
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, rstrip(os.path.basename(genome), '.fa') + '.*') + ' ' + join(OUT_DIR, 'genome', 'bt2_index'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule bowtie2_female:
+    input:
+        r1 = female,
+        index = rules.bt2_index.output.index,
+        asembly = genome
+    output: 
+        bam = join(OUT_DIR, 'Bowtie2', 'female.csorted.bowtie2.bam')
+    log:
+        join(OUT_DIR, 'Bowtie2', 'female.bowtie2.log')
+    benchmark:
+        join(OUT_DIR, 'Bowtie2', 'female.benchmark.tsv')
+    message: 
+        """--- Mapping female reads with Bowtie2."""
+    run: 
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && cp {input.r1} {input.asembly} ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && cp ' + join(OUT_DIR, 'genome', 'bt2_index', rstrip(os.path.basename(genome), '.fa') + '*bt2') + ' ' +  join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID)) 
+        shell('cd ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && (bowtie2'                                     
+                ' -p 8'   
+                ' -x ' + os.path.basename(rstrip(genome, '.fa')) +                    
+                ' -U Dnov_female.fastq.gz'      ###### Specify species name here, fix later  
+                ') 2> {log}'
+                ' | samtools sort -@ 8 -o female.csorted.bowtie2.bam -')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'female.csorted.bowtie2.bam') + ' ' + join(OUT_DIR, 'Bowtie2'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID)) 
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule qualiMap_female:
+    input:
+        bam = join(OUT_DIR, 'Bowtie2', 'female.csorted.bowtie2.bam')
+    output: 
+        bamqc = join(OUT_DIR, 'Bowtie2', 'female_bamqc', 'qualimapReport.html')
+    log:
+        join(OUT_DIR, 'Bowtie2', 'female_bamqc.log')
+    benchmark:
+        join(OUT_DIR, 'Bowtie2', 'female_bamqc_benchmark.tsv')
+    message: 
+        """--- Evaluating mapping quality with QualiMap for female sample ."""
+    run: 
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && cp ' + join(OUT_DIR, 'Bowtie2', 'female.csorted.bowtie2.bam') + ' ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID)) 
+        shell('cd ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && /programs/qualimap_v2.2.1/qualimap bamqc'
+                ' -bam female.csorted.bowtie2.bam'
+                ' -c'
+                ' -outdir female_bamqc'
+                ' -nt 8')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'female_bamqc') + ' ' + join(OUT_DIR, 'Bowtie2'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+rule bowtie2_male:
+    input:
+        r1 = male,
+        index = rules.bt2_index.output.index,
+        asembly = genome
+    output: 
+        bam = join(OUT_DIR, 'Bowtie2', 'male.csorted.bowtie2.bam')
+    log:
+        join(OUT_DIR, 'Bowtie2', 'male.bowtie2.log')
+    benchmark:
+        join(OUT_DIR, 'Bowtie2', 'male.benchmark.tsv')
+    message: 
+        """--- Mapping male reads with Bowtie2."""
+    run: 
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && cp {input.r1} {input.asembly} ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && cp ' + join(OUT_DIR, 'genome', 'bt2_index', rstrip(os.path.basename(genome), '.fa') + '*bt2') + ' ' +  join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID)) 
+        shell('cd ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && (bowtie2'                                     
+                ' -p 8'   
+                ' -x ' + os.path.basename(rstrip(genome, '.fa')) +                    
+                ' -U Dnov_male.fastq.gz'      ###### Specify species name here, fix later  
+                ') 2> {log}'
+                ' | samtools sort -@ 8 -o male.csorted.bowtie2.bam -')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'male.csorted.bowtie2.bam') + ' ' + join(OUT_DIR, 'Bowtie2'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID)) 
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule qualiMap_male:
+    input:
+        bam = join(OUT_DIR, 'Bowtie2', 'male.csorted.bowtie2.bam')
+    output: 
+        bamqc = join(OUT_DIR, 'Bowtie2', 'male_bamqc', 'qualimapReport.html')
+    log:
+        join(OUT_DIR, 'Bowtie2', 'male_bamqc.log')
+    benchmark:
+        join(OUT_DIR, 'Bowtie2', 'male_bamqc_benchmark.tsv')
+    message: 
+        """--- Evaluating mapping quality with QualiMap for male sample ."""
+    run: 
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && cp ' + join(OUT_DIR, 'Bowtie2', 'male.csorted.bowtie2.bam') + ' ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID)) 
+        shell('cd ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && /programs/qualimap_v2.2.1/qualimap bamqc'
+                ' -bam male.csorted.bowtie2.bam'
+                ' -c'
+                ' -outdir male_bamqc'
+                ' -nt 8')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'male_bamqc') + ' ' + join(OUT_DIR, 'Bowtie2'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+
+rule coverage_female:
+    input:
+        bam = rules.bowtie2_female.output.bam
+    output: 
+        bcov = join(OUT_DIR, 'Bowtie2', 'female.coverage.txt')
+    log:
+        join(OUT_DIR, 'Bowtie2', 'female.coverage.log')
+    benchmark:
+        join(OUT_DIR, 'Bowtie2', 'female.coverage.benchmark.tsv')
+    message: 
+        """--- Generating coverage histograms with bedtools."""
+    run: 
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && cp {input.bam} ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && genomeCoverageBed '                                     
+                ' -ibam female.csorted.bowtie2.bam '   
+                ' -max 50 '
+                ' > female.coverage.txt')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'female.coverage.txt') + ' ' + join(OUT_DIR, 'Bowtie2'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule coverage_male:
+    input:
+        bam = rules.bowtie2_male.output.bam
+    output: 
+        bcov = join(OUT_DIR, 'Bowtie2', 'male.coverage.txt')
+    log:
+        join(OUT_DIR, 'Bowtie2', 'male.coverage.log')
+    benchmark:
+        join(OUT_DIR, 'Bowtie2', 'male.coverage.benchmark.tsv')
+    message: 
+        """--- Generating coverage histograms with bedtools."""
+    run: 
+        shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && cp {input.bam} ' + join(WORK_DIR, USER, JOB_ID) + 
+                ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+                ' && genomeCoverageBed '                                     
+                ' -ibam male.csorted.bowtie2.bam '   
+                ' -max 50 '
+                ' > male.coverage.txt')
+        shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'male.coverage.txt') + ' ' + join(OUT_DIR, 'Bowtie2'))
+        shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+## Rule to collate fastQC and Bowtie2 outputs with multiQC
+rule multiQC:
+    input:
+        join(OUT_DIR, 'Bowtie2', 'male.csorted.bowtie2.bam'),
+        join(OUT_DIR, 'Bowtie2', 'female.csorted.bowtie2.bam'),
+        join(OUT_DIR, 'Bowtie2', 'female_bamqc', 'qualimapReport.html'),
+        join(OUT_DIR, 'Bowtie2', 'male_bamqc', 'qualimapReport.html')
+    output:
+        file = join(OUT_DIR, 'MultiQC', 'multiqc_report.html')
+    log:
+        join(OUT_DIR, 'MultiQC', 'multiQC.log')
+    benchmark:
+        join(OUT_DIR, 'MultiQC', 'multiQC.benchmark.tsv')
+    message: 
+        """--- Running MultiQC """
+    run:
+        shell('ls -1 ' + join(OUT_DIR) + '/Bowtie2/*.bowtie2.log > ' + join(OUT_DIR, 'MultiQC', 'summary_files.txt'))
+        shell('ls -1 ' + join(OUT_DIR) + '/Bowtie2/*_bamqc | grep ":" | sed "s/://g" >> ' + join(OUT_DIR, 'MultiQC', 'summary_files.txt'))
+        shell('multiqc'
+                ' -f'
+                ' -o ' + join(OUT_DIR, 'MultiQC') + ' -d -dd 1 -l ' + join(OUT_DIR, 'MultiQC', 'summary_files.txt') +
+                ' > {log} 2>&1')
