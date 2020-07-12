@@ -1,0 +1,1566 @@
+"""
+Author: Y. Ahmed-Braimah
+--- Snakemake workflow for PacBio genome annotation
+--- and genomic analysis
+"""
+
+import json
+import os
+from os.path import join, basename, dirname, isfile
+from os import getcwd, listdir
+from subprocess import check_output
+import subprocess
+
+##--------------------------------------------------------------------------------------##
+## Functions
+##--------------------------------------------------------------------------------------##
+
+# To print process messages
+def message(x):
+  print()
+
+# To remove suffix from a string
+def rstrip(text, suffix):
+    if not text.endswith(suffix):
+        return text
+    return text[:len(text)-len(suffix)]
+
+## define environment variables
+
+##--------------------------------------------------------------------------------------##
+## Global config files:
+##--------------------------------------------------------------------------------------##
+
+configfile: 'config.yml'
+
+# Full path to an uncompressed FASTA file with all chromosome sequences.
+DNA = config['DNA']
+GTF = config['GTF']
+BWA_INDEX = config['BWA_INDEX']
+HS2_INDEX = config['HS2_INDEX']
+REP = config['repLib']
+
+# Full path to a folder where final output files will be deposited.
+OUT_DIR = config['OUT_DIR']
+HOME_DIR = config['HOME_DIR']
+
+## Sexed DNAseq read files.
+female = config['female_reads']
+male = config['male_reads']
+
+# files/paths required for Trinotate
+UNIPROT = config['UNIPROT']
+CUSTOM = config['CUSTOM']
+PFAM = config['PFAM']
+SQLITE = config['SQLITE']
+RNAMMER = config['RNAMMER']
+
+# DNAseq Samples and their corresponding filenames.
+# single-end
+dseFILES = json.load(open(config['SE_DNA_SAMPLES_JSON']))
+dseSAMPLES = sorted(dseFILES.keys())
+# paired-end:
+dpeFILES = json.load(open(config['PE_DNA_SAMPLES_JSON']))
+dpeSAMPLES = sorted(dpeFILES.keys())
+# combine them for when needed
+dcombinedSam = [dpeSAMPLES, dseSAMPLES]
+dSAMPLES = [y for x in dcombinedSam for y in x]
+
+# RNAseq Samples and their corresponding filenames.
+# single-end
+rseFILES = json.load(open(config['SE_RNA_SAMPLES_JSON']))
+rseSAMPLES = sorted(rseFILES.keys())
+# paired-end:
+rpeFILES = json.load(open(config['PE_RNA_SAMPLES_JSON']))
+rpeSAMPLES = sorted(rpeFILES.keys())
+# combine them for when needed
+rcombinedSam = [rpeSAMPLES, rseSAMPLES]
+rSAMPLES = [y for x in rcombinedSam for y in x]
+
+
+## Create the final output directory if it doesn't already exist
+if not os.path.exists(OUT_DIR):
+            os.makedirs(OUT_DIR)
+
+##--------------------------------------------------------------------------------------##--------------------------------------------------------------------------------------
+# _____ _             _               _               _
+#|  ___(_)_ __   __ _| |   ___  _   _| |_ _ __  _   _| |_ ___
+#| |_  | | '_ \ / _` | |  / _ \| | | | __| '_ \| | | | __/ __|
+#|  _| | | | | | (_| | | | (_) | |_| | |_| |_) | |_| | |_\__ \
+#|_|   |_|_| |_|\__,_|_|  \___/ \__,_|\__| .__/ \__,_|\__|___/
+#                                        |_|
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------
+
+## Final expected output(s)
+rule all:
+    input:
+        join(OUT_DIR, 'MultiQC', 'multiqc_report.html'),
+        join(OUT_DIR, 'VCF', 'BWA_GATK', 'GATK_merged.vcf.gz'),
+        join(OUT_DIR, 'StringTie', 'gffcmp.annotated.gtf'),
+        ## YGS
+        # join(OUT_DIR, 'result', rstrip(os.path.basename(genome), '.fa') + '_female_male.final_result'),
+        # join(OUT_DIR, 'Bowtie2', 'female.coverage.txt'),
+        # join(OUT_DIR, 'Bowtie2', 'male.coverage.txt'),
+        ##
+        join(OUT_DIR, 'abundances', 'gene_counts_matrix.txt'),
+        join(OUT_DIR, 'Trinotate', 'Trinotate_report.xls'),
+        join(OUT_DIR, 'Trinotate', 'Trinotate_report.xls.gene_ontology'),
+        join(OUT_DIR, 'TransDecoder', 'stringtie_merged_exons.fa.transdecoder.genome.gff3'),
+        ## population genomics
+        join(OUT_DIR, 'VCF', 'PopGen', 'popgenWindows_100kb_results.txt')
+
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+# ______        ___
+#| __ ) \      / / \
+#|  _ \\ \ /\ / / _ \
+#| |_) |\ V  V / ___ \
+#|____/  \_/\_/_/   \_\
+#
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## Rule for mapping PE reads to the genome with Bowtie2
+rule BWA_MEM_pe:
+    input:
+        r1 = lambda wildcards: dpeFILES[wildcards.sample]['R1'],
+        r2 = lambda wildcards: dpeFILES[wildcards.sample]['R2'],
+        index = BWA_INDEX
+    output:
+        bam = join(OUT_DIR, 'BWA', '{sample}', '{sample}.csorted.bwa.bam'),
+        bai = join(OUT_DIR, 'BWA', '{sample}', '{sample}.csorted.bwa.bam.bai'),
+        bamqc = join(OUT_DIR, 'BWA', '{sample}', 'bamqc', 'qualimapReport.html')
+    log:
+        bwa = join(OUT_DIR, 'BWA', '{sample}', 'bwa.log'),
+        bamqc = join(OUT_DIR, 'BWA', '{sample}', 'bamqc.log')
+    benchmark:
+        join(OUT_DIR, 'BWA', '{sample}', 'benchmark.tsv')
+    message:
+        """--- Mapping PE sample "{wildcards.sample}" with BWA MEM."""
+    threads:
+        8
+    resources:
+        mem_mb=32000
+    run:
+        shell('bwa mem'
+                ' -t 8'
+                ' -R \'@RG\\tID:i{wildcards.sample}\\tSM:{wildcards.sample}\\tPO:' + wildcards.sample.split("_", maxsplit = 1)[0] + '\''
+                ' {input.index}'
+                ' {input.r1}'
+                ' {input.r2}'
+                ' | samtools sort -@ 8 -o {output.bam} -'
+                ' > {log.bwa} 2>&1')
+        shell('samtools index {output.bam} {output.bai}')
+        shell('qualimap bamqc'
+                ' -bam {output.bam}'
+                ' -c'
+                ' -outdir ' + join(OUT_DIR, 'BWA', '{wildcards.sample}', 'bamqc') +
+                ' --java-mem-size=32G'
+                ' -nt 8'
+                ' 2> {log.bamqc}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## Rule for mapping PE reads to the genome with Bowtie2
+rule BWA_MEM_se:
+    input:
+        r1 = lambda wildcards: dseFILES[wildcards.sample]['R1'],
+        index = BWA_INDEX
+    output:
+        bam = join(OUT_DIR, 'BWA', '{sample}', '{sample}.csorted.bwa.bam'),
+        bai = join(OUT_DIR, 'BWA', '{sample}', '{sample}.csorted.bwa.bam.bai'),
+        bamqc = join(OUT_DIR, 'BWA', '{sample}', 'bamqc', 'qualimapReport.html')
+    log:
+        bwa = join(OUT_DIR, 'BWA', '{sample}', 'bwa.log'),
+        bamqc = join(OUT_DIR, 'BWA', '{sample}', 'bamqc.log')
+    benchmark:
+        join(OUT_DIR, 'BWA', '{sample}', 'benchmark.tsv')
+    message:
+        """--- Mapping SE sample "{wildcards.sample}" with BWA MEM."""
+    threads:
+        8
+    resources:
+        mem_mb=32000
+    run:
+        shell('bwa mem'
+                ' -t 8'
+                ' -R \'@RG\\tID:i{wildcards.sample}\\tSM:{wildcards.sample}\\tPO:' + wildcards.sample.split("_", maxsplit = 1)[0] + '\''
+                ' {input.index}'
+                ' {input.r1}'
+                ' | samtools sort -@ 8 -o {output.bam} -'
+                ' > {log.bwa} 2>&1')
+        shell('samtools index {output.bam} {output.bai}')
+        shell('qualimap bamqc'
+                ' -bam {output.bam}'
+                ' -c'
+                ' -outdir ' + join(OUT_DIR, 'BWA', '{wildcards.sample}', 'bamqc') +
+                ' --java-mem-size=32G'
+                ' -nt 8'
+                ' 2> {log.bamqc}')
+
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+#  ____    _  _____ _  __
+# / ___|  / \|_   _| |/ /
+#| |  _  / _ \ | | | ' /
+#| |_| |/ ___ \| | | . \
+# \____/_/   \_\_| |_|\_\
+#
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule GATK_calls:
+    input:
+        bam = join(OUT_DIR, 'BWA', '{sample}', '{sample}.csorted.bwa.bam'),
+        bai = join(OUT_DIR, 'BWA', '{sample}', '{sample}.csorted.bwa.bam.bai'),
+        dna = DNA
+    output:
+        vcf = join(OUT_DIR, 'VCF', 'BWA_GATK', '{sample}', '{sample}.vcf.gz'),
+        tbi = join(OUT_DIR, 'VCF', 'BWA_GATK', '{sample}', '{sample}.vcf.gz.tbi'),
+        evalGrp = join(OUT_DIR, 'VCF', 'BWA_GATK', '{sample}', '{sample}.evalGrp')
+    log:
+        join(OUT_DIR, 'VCF', 'BWA_GATK', '{sample}', '{sample}.GATK_calls.log')
+    benchmark:
+        join(OUT_DIR, 'VCF', 'BWA_GATK', '{sample}', '{sample}.GATK_calls.benchmark.tsv')
+    message:
+        """--- Calling variants with GATK for sample {wildcards.sample}."""
+    threads:
+        8
+    resources:
+        mem_mb=32000
+    run:
+        shell('gatk HaplotypeCaller'
+                ' -R {input.dna}'
+                ' -I {input.bam}'
+                ' -O ' + join(OUT_DIR, 'VCF', 'BWA_GATK', '{wildcards.sample}', '{wildcards.sample}.vcf') +
+                ' > {log} 2>&1')
+        shell('bgzip ' + join(OUT_DIR, 'VCF', 'BWA_GATK', '{wildcards.sample}', '{wildcards.sample}.vcf'))
+        shell('tabix -p vcf {output.vcf}')
+        shell('gatk VariantEval'
+                ' -R ' + DNA +
+                ' -O {output.evalGrp}'
+                ' --eval:set1 {output.vcf}')
+
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+# Rule for mapping PE reads to the genome with Bowtie2
+rule merge_GATK_calls:
+    input:
+        expand(join(OUT_DIR, 'VCF', 'BWA_GATK', '{sample}', '{sample}.vcf.gz'), sample = dSAMPLES)
+    output:
+        vcf = join(OUT_DIR, 'VCF', 'BWA_GATK', 'GATK_merged.vcf.gz'),
+        tbi = join(OUT_DIR, 'VCF', 'BWA_GATK', 'GATK_merged.vcf.gz.tbi'),
+        evalGrp = join(OUT_DIR, 'VCF', 'BWA_GATK', 'GATK_merged.evalGrp')
+    log:
+        join(OUT_DIR, 'VCF', 'BWA_GATK', 'merge.GATK_calls.log')
+    benchmark:
+        join(OUT_DIR, 'VCF', 'BWA_GATK', 'merge.GATK_calls.benchmark.tsv')
+    message:
+        """--- Merging GATK variants."""
+    threads:
+        8
+    resources:
+        mem_mb=32000
+    run:
+        shell('vcf_list=$(ls ' + join(OUT_DIR, 'VCF', 'BWA_GATK', '*', '*.vcf.gz') + ' | while read l; do echo " -V "$l; done)'
+                ' && java -jar /home/yahmed/software/gatk-3.8-1/GenomeAnalysisTK.jar'
+                ' -T CombineVariants'
+                ' -R ' + DNA +
+                ' $vcf_list'
+                ' -o ' + join(OUT_DIR, 'VCF', 'BWA_GATK', 'GATK_merged.vcf') +
+                ' > {log} 2>&1')
+        shell('bgzip ' + join(OUT_DIR, 'VCF', 'BWA_GATK', 'GATK_merged.vcf'))
+        shell('tabix -p vcf {output.vcf}')
+        shell('gatk VariantEval'
+                ' -R ' + DNA +
+                ' -O {output.evalGrp}'
+                ' --eval:set1 {output.vcf}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+# ____              ____                            _
+#|  _ \ ___  _ __  / ___| ___ _ __   ___  _ __ ___ (_) ___ ___
+#| |_) / _ \| '_ \| |  _ / _ \ '_ \ / _ \| '_ ` _ \| |/ __/ __|
+#|  __/ (_) | |_) | |_| |  __/ | | | (_) | | | | | | | (__\__ \
+#|_|   \___/| .__/ \____|\___|_| |_|\___/|_| |_| |_|_|\___|___/
+#           |_|
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule parseVCF:
+    input:
+        vcf = join(OUT_DIR, 'VCF', 'BWA_GATK', 'GATK_merged.vcf.gz')
+    output:
+        geno = join(OUT_DIR, 'VCF', 'BWA_GATK', 'GATK_merged.geno')
+    log:
+        join(OUT_DIR, 'VCF', 'BWA_GATK', 'parseVCF.log')
+    benchmark:
+        join(OUT_DIR, 'VCF', 'BWA_GATK', 'parseVCF.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=16000
+    message:
+        """--- Converting VCF to genotype file """
+    run:
+        shell('parseVCF.py'
+                ' -i {input.vcf}'
+                ' -o {output.geno}'
+                ' --minQual 30'
+                ' --skipIndels'
+                ' --skipMono')
+
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule popGenWindows:
+    input:
+        geno = join(OUT_DIR, 'VCF', 'BWA_GATK', 'GATK_merged.geno')
+    output:
+        samplesFile = join(OUT_DIR, 'VCF', 'PopGen', 'samplesFile.txt'),
+        k10 = join(OUT_DIR, 'VCF', 'PopGen', 'popgenWindows_10kb_results.txt'),
+        k25 = join(OUT_DIR, 'VCF', 'PopGen', 'popgenWindows_25kb_results.txt'),
+        k50 = join(OUT_DIR, 'VCF', 'PopGen', 'popgenWindows_50kb_results.txt'),
+        k100 = join(OUT_DIR, 'VCF', 'PopGen', 'popgenWindows_100kb_results.txt')
+    log:
+        join(OUT_DIR, 'VCF', 'BWA_GATK', 'parseVCF.log')
+    benchmark:
+        join(OUT_DIR, 'VCF', 'BWA_GATK', 'parseVCF.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=16000
+    message:
+        """--- Running population genomics analysis in sliding window """
+    run:
+        shell('head -1 {input.geno} | tr "\t" "\n" | grep -v "CHROM\|POS" | awk \'{{print $1"\t"$1}}\' | sed "s/_/__/2" | sed "s/__.*//g" > {output.samplesFile}')
+        shell('sample_list=$(head -1 {input.geno} | tr "\t" "\n" | grep -v "CHROM\|POS" | sed "s/_.*//g" | sort -u | while read l; do echo " -p "$l; done)'
+                ' && popgenWindows.py'
+                ' --windType coordinate'
+                ' --windSize 10000'
+                ' --stepSize 10000'
+                ' --minSites 100'
+                ' $sample_list'
+                ' --popsFile {output.samplesFile}'
+                ' --genoFile {input.geno}'
+                ' --outFile {output.k10}'
+                ' -f phased'
+                ' --addWindowID'
+                ' --writeFailedWindows')
+        shell('sample_list=$(head -1 {input.geno} | tr "\t" "\n" | grep -v "CHROM\|POS" | sed "s/_.*//g" | sort -u | while read l; do echo " -p "$l; done)'
+                ' && popgenWindows.py'
+                ' --windType coordinate'
+                ' --windSize 25000'
+                ' --stepSize 25000'
+                ' --minSites 250'
+                ' $sample_list'
+                ' --popsFile {output.samplesFile}'
+                ' --genoFile {input.geno}'
+                ' --outFile {output.k25}'
+                ' -f phased'
+                ' --addWindowID'
+                ' --writeFailedWindows')
+        shell('sample_list=$(head -1 {input.geno} | tr "\t" "\n" | grep -v "CHROM\|POS" | sed "s/_.*//g" | sort -u | while read l; do echo " -p "$l; done)'
+                ' && popgenWindows.py'
+                ' --windType coordinate'
+                ' --windSize 50000'
+                ' --stepSize 50000'
+                ' --minSites 500'
+                ' $sample_list'
+                ' --popsFile {output.samplesFile}'
+                ' --genoFile {input.geno}'
+                ' --outFile {output.k50}'
+                ' -f phased'
+                ' --addWindowID'
+                ' --writeFailedWindows')
+        shell('sample_list=$(head -1 {input.geno} | tr "\t" "\n" | grep -v "CHROM\|POS" | sed "s/_.*//g" | sort -u | while read l; do echo " -p "$l; done)'
+                ' && popgenWindows.py'
+                ' --windType coordinate'
+                ' --windSize 100000'
+                ' --stepSize 100000'
+                ' --minSites 1000'
+                ' $sample_list'
+                ' --popsFile {output.samplesFile}'
+                ' --genoFile {input.geno}'
+                ' --outFile {output.k100}'
+                ' -f phased'
+                ' --addWindowID'
+                ' --writeFailedWindows')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+# ____                       _   __  __           _
+#|  _ \ ___ _ __   ___  __ _| |_|  \/  | __ _ ___| | _____ _ __
+#| |_) / _ \ '_ \ / _ \/ _` | __| |\/| |/ _` / __| |/ / _ \ '__|
+#|  _ <  __/ |_) |  __/ (_| | |_| |  | | (_| \__ \   <  __/ |
+#|_| \_\___| .__/ \___|\__,_|\__|_|  |_|\__,_|___/_|\_\___|_|
+#          |_|
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule RepeatMasker_JB:
+    input:
+        dna = DNA,
+        rep = REP
+    output:
+        gff = join(OUT_DIR, 'RepeatMasker_JB', os.path.basename(DNA) + '.out.gff'),
+        masked = join(OUT_DIR, 'RepeatMasker_JB', os.path.basename(DNA) + '.masked')
+    log:
+        join(OUT_DIR, 'RepeatMasker_JB', 'rm.log')
+    benchmark:
+        join(OUT_DIR, 'RepeatMasker_JB', 'rm_benchmark.tsv')
+    message:
+        """--- Running RepeatMasker with Justin's database."""
+    threads:
+        8
+    resources:
+        mem_mb=16000
+    run:
+        shell('RepeatMasker'
+        ' -pa 4'
+        ' -q -nolow'
+        ' -lib {input.rep}'
+        ' -a'
+        ' -lcambig'
+        ' -dir ' + join(OUT_DIR, 'RepeatMasker_JB') +
+        ' -html'
+        ' -gff'
+        ' -u {input.dna}'
+        ' > {log} 2>&1')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule RepeatMasker_dros:
+    input:
+        dna = DNA
+    output:
+        gff = join(OUT_DIR, 'RepeatMaser_dros', os.path.basename(DNA) + '.out.gff'),
+        masked = join(OUT_DIR, 'RepeatMaser_dros', os.path.basename(DNA) + '.masked')
+    log:
+        join(OUT_DIR, 'RepeatMaser_dros', 'rm.log')
+    benchmark:
+        join(OUT_DIR, 'RepeatMaser_dros', 'rm_benchmark.tsv')
+    message:
+        """--- Running RepeatMasker with the Drosophila database."""
+    threads:
+        8
+    resources:
+        mem_mb=16000
+    run:
+        shell('RepeatMasker'
+        ' -pa 4'
+        ' -q -nolow'
+        ' -species drosophila '
+        ' -a'
+        ' -lcambig'
+        ' -dir ' + join(OUT_DIR, 'RepeatMaser_dros') +
+        ' -html'
+        ' -gff'
+        ' -u {input.dna}'
+        ' > {log} 2>&1')
+
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+# _____                   _      ____
+#|_   _|   ___  _____  __| | ___|___ \
+#  | || | | \ \/ / _ \/ _` |/ _ \ __) |
+#  | || |_| |>  <  __/ (_| | (_) / __/
+#  |_| \__,_/_/\_\___|\__,_|\___/_____|
+#
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+
+rule hisat2_se_mapping:
+    input:
+        r1 = lambda wildcards: rseFILES[wildcards.sample]['R1'],
+        index = HS2_INDEX
+    output:
+        bam = join(OUT_DIR, 'HISAT-2', '{sample}', '{sample}.csorted.hisat2.bam')
+    log:
+        join(OUT_DIR, 'HISAT-2', '{sample}', 'hs2_map_se.log')
+    benchmark:
+        join(OUT_DIR, 'HISAT-2', '{sample}', 'hs2_map_se.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=16000
+    message:
+        """--- Mapping SE reads for sample {wildcards.sample} to genome with HISAT-2 """
+    run:
+        if 'F' in wildcards.sample:
+            shell('(hisat2'
+                ' -p 8'
+                ' --no-unal'
+                ' --rna-strandness R'
+                ' --dta'
+                ' -x {input.index}'
+                ' -U {input.r1}) 2>{log}'
+                ' | samtools sort -@ 8 -o {output.bam} -')
+        else:
+            shell('(hisat2'
+                ' -p 8'
+                ' --no-unal'
+                ' --dta'
+                ' -x {input.index}'
+                ' -U {input.r1}) 2>{log}'
+                ' | samtools sort -@ 8 -o {output.bam} -')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule hisat2_pe_mapping:
+    input:
+        r1 = lambda wildcards: rpeFILES[wildcards.sample]['R1'],
+        r2 = lambda wildcards: rpeFILES[wildcards.sample]['R2'],
+        index = HS2_INDEX
+    output:
+        bam = join(OUT_DIR, 'HISAT-2', '{sample}', '{sample}.csorted.hisat2.bam')
+    log:
+        join(OUT_DIR, 'HISAT-2', '{sample}', 'hs2_map_pe.log')
+    benchmark:
+        join(OUT_DIR, 'HISAT-2', '{sample}', 'hs2_map_pe.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=16000
+    message:
+        """--- Mapping PE reads for sample {wildcards.sample} to genome with HISAT-2 """
+    run:
+        shell('(hisat2'
+                ' -p 16'
+                ' --no-unal'
+                ' --dta'
+                ' -x {input.index}'
+                ' -1 {input.r1}'
+                ' -2 {input.r2})'
+                ' 2>{log}'
+                ' | samtools sort -@ 8 -o {output.bam} -')
+
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule stringtie_assembly:
+    input:
+        bam = join(OUT_DIR, 'HISAT-2', '{sample}', '{sample}' + '.csorted.hisat2.bam')
+    output:
+        asmbly = join(OUT_DIR, 'StringTie', '{sample}', '{sample}' + '.gtf')
+    params:
+        gtf = GTF
+    log:
+        join(OUT_DIR, 'StringTie', '{sample}', 'st_asmbly.log')
+    benchmark:
+        join(OUT_DIR, 'StringTie', '{sample}', 'st_asmbly.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=16000
+    message:
+        """--- Assembling transcripts for sample {wildcards.sample} with StringTie """
+    run:
+        shell('stringtie'
+                ' {input.bam}'
+                ' -p 8'
+                ' -G {params.gtf}'
+                ' -o {output.asmbly}'
+                ' -l {wildcards.sample} > {log}')
+
+
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## merge StringTie assemblies
+rule merge_assemblies:
+    input:
+        assemblies = expand(join(OUT_DIR, 'StringTie', '{sample}', '{sample}' + '.gtf'), sample = rSAMPLES)
+    output:
+        asmbly = join(OUT_DIR, 'StringTie', 'stringtie_merged.gtf'),
+        geneTransMap = join(OUT_DIR, 'StringTie', 'stringtie_merged_gene_trans_map')
+    params:
+        gtf = GTF
+    log:
+        join(OUT_DIR, 'StringTie', 'st_mrg.index.log')
+    benchmark:
+        join(OUT_DIR, 'StringTie', 'st_mrg.index.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=16000
+    message:
+        """--- Merging StringTie transcripts """
+    run:
+        shell('ls -1 ' + join(OUT_DIR) + '/StringTie/*/*.gtf > ' + join(OUT_DIR, 'StringTie', 'assemblies.txt'))
+        shell ('stringtie'
+                ' --merge'
+                ' -p 8'
+                ' -G {params.gtf}'
+                ' -o {output.asmbly} ' + join(OUT_DIR, 'StringTie', 'assemblies.txt'))
+        shell('awk \'{{if ($3 == "transcript") print $10"\t"$12}}\' {output.asmbly} | sed "s/;//g" | sed "s/\\\"//g" | sort -u > {output.geneTransMap}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## compare new GTF annotation
+rule compare_gtf:
+    input:
+        STasmbly = rules.merge_assemblies.output.asmbly
+    output:
+        asmbly = join(OUT_DIR, 'StringTie', 'gffcmp.annotated.gtf')
+    params:
+        gtf = GTF,
+        dna = DNA
+    message:
+        """--- Comparing StringTie merged assembly with reference GTF """
+    run:
+        shell('gffcompare'
+                ' -r {params.gtf}'
+                ' -s {params.dna}'
+                ' {input.STasmbly}')
+        shell('mv gffcmp* ' + join(OUT_DIR, 'StringTie'))
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+
+## Rule for mapping PE reads to the genome with Bowtie2
+rule qualiMap:
+    input:
+        bam = join(OUT_DIR, 'HISAT-2', '{sample}', '{sample}' + '.csorted.hisat2.bam'),
+        gtf = rules.merge_assemblies.output.asmbly
+    output:
+        bamqc = join(OUT_DIR, 'HISAT-2', '{sample}', '{sample}.qualmap_rnaseq', 'qualimapReport.html')
+    log:
+        join(OUT_DIR, 'HISAT-2', '{sample}', 'qualmap_rnaseq.log')
+    benchmark:
+        join(OUT_DIR, 'HISAT-2', '{sample}', 'qualmap_rnaseq_benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=32000
+    message:
+        """--- Evaluating mapping quality with QualiMap for sample "{wildcards.sample}"."""
+    run:
+        if 'F' in wildcards.sample:
+            shell('qualimap rnaseq'
+                ' -bam {input.bam}'
+                ' --java-mem-size=32G'
+                ' -gtf {input.gtf}'
+                ' -outdir ' + join(OUT_DIR, 'HISAT-2', '{wildcards.sample}', '{wildcards.sample}.qualmap_rnaseq') +
+                ' -p strand-specific-reverse'
+                ' > {log}')
+        else:
+            shell('qualimap rnaseq'
+                ' -bam {input.bam}'
+                ' --java-mem-size=32G'
+                ' -gtf {input.gtf}'
+                ' -outdir ' + join(OUT_DIR, 'HISAT-2', '{wildcards.sample}', '{wildcards.sample}.qualmap_rnaseq') +
+                ' > {log} 2>&1')
+
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## measure transcript abundances with Stringtie
+rule abundances:
+    input:
+        bam = join(OUT_DIR, 'HISAT-2', '{sample}', '{sample}' + '.csorted.hisat2.bam'),
+        mrgd = rules.merge_assemblies.output.asmbly
+    output:
+        abundance = join(OUT_DIR, 'abundances', '{sample}', '{sample}' + '_abundance.gtf')
+    log:
+        join(OUT_DIR, 'abundances', '{sample}', 'st_abnd.log')
+    benchmark:
+        join(OUT_DIR, 'abundances', '{sample}', 'st_abnd.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=16000
+    message:
+        """--- Estimating transcript abundances for sample {wildcards.sample} with StringTie"""
+    run:
+        shell('stringtie'
+                ' -e -B -p 8'
+                ' -G {input.mrgd}'
+                ' -o {output.abundance}'
+                ' {input.bam}'
+                ' > {log} 2>&1')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## measure transcript abundances with Stringtie
+rule featureCounts:
+    input:
+        bams = expand(join(OUT_DIR, 'HISAT-2', '{sample}', '{sample}' + '.csorted.hisat2.bam'), sample = rSAMPLES),
+        mrgd = rules.merge_assemblies.output.asmbly
+    output:
+        counts = join(OUT_DIR, 'abundances', 'gene_counts.txt'),
+        countsMatrix = join(OUT_DIR, 'abundances', 'gene_counts_matrix.txt'),
+
+    log:
+        join(OUT_DIR, 'abundances', 'fC.log')
+    benchmark:
+        join(OUT_DIR, 'abundances', 'fC.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=16000
+    message:
+        """--- Outputting gene counts with featureCounts. """
+    run:
+        shell('featureCounts'
+                ' -a {input.mrgd}'
+                ' -p'
+                ' -T 8'
+                ' -F GTF'
+                ' -o {output.counts} ' + join(OUT_DIR, 'HISAT-2', '*', '*.bam') +
+                ' > {log} 2>&1')
+        shell('cat {output.counts} | cut -f 1,7- | sed 1d > {output.countsMatrix}')
+
+
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+# _____     _             _        _
+#|_   _| __(_)_ __   ___ | |_ __ _| |_ ___
+#  | || '__| | '_ \ / _ \| __/ _` | __/ _ \
+#  | || |  | | | | | (_) | || (_| | ||  __/
+#  |_||_|  |_|_| |_|\___/ \__\__,_|\__\___|
+#
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## extract transcriptome sequences from the genome using the StringTie assembly
+rule gffread_exons:
+    input:
+        gtf = rules.merge_assemblies.output.asmbly,
+        dna = DNA
+    output:
+        exons = join(OUT_DIR, 'sequences', 'stringtie_merged_exons.fa'),
+        gff3 = join(OUT_DIR, 'sequences', 'stringtie_merged.gtf.gff3')
+    threads:
+        2
+    resources:
+        mem_mb=4000
+    message:
+        """--- Extracting exon sequences from the genome using the GTF file """
+    run:
+        shell('gffread {input.gtf}'
+                ' -g {input.dna}'
+                ' -w {output.exons}')
+        shell('gtf_to_alignment_gff3.pl {input.gtf} > {output.gff3}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## predict long ORFs with TransDecoder
+rule Transdecoder_LongOrfs:
+    input:
+        exons = rules.gffread_exons.output.exons,
+        geneTransMap = join(OUT_DIR, 'StringTie', 'stringtie_merged_gene_trans_map')
+    output:
+        longOrfs = join(OUT_DIR, 'TransDecoder', 'stringtie_merged_exons.fa.transdecoder_dir/longest_orfs.pep')
+    log:
+        join(OUT_DIR, 'LOGS', 'Transdecoder_LongOrfs.log')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'Transdecoder_LongOrfs.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=16000
+    message:
+        """--- Extracting long ORFs with TransDecoder """
+    run:
+        shell('TransDecoder.LongOrfs'
+                ' -t {input.exons}'
+                ' --gene_trans_map {input.geneTransMap}'
+                ' -m 50'
+                ' --output_dir ' + join(OUT_DIR, 'TransDecoder', 'stringtie_merged_exons.fa.transdecoder_dir') +
+                ' > {log} 2>&1')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## protein blast initial long ORFs against UniProt database
+rule BLASTp_init:
+    input:
+        longOrfs = rules.Transdecoder_LongOrfs.output.longOrfs,
+        uniprot = UNIPROT
+    output:
+        blastpI = join(OUT_DIR, 'BLAST_results', 'BLASTp_init.outfmt6')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'BLASTp_init.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=32000
+    message:
+        """--- Initial BLASTp for TransDecoder """
+    run:
+        shell('blastp'
+                ' -query {input.longOrfs}'
+                ' -db {input.uniprot}'
+                ' -max_target_seqs 1'
+                ' -outfmt 6'
+                ' -evalue 1e-5'
+                ' -num_threads 8'
+                ' > {output}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## search initial long ORFs against Pfam rotein domains using HMMER
+rule Pfam_init:
+    input:
+        longOrfs = rules.Transdecoder_LongOrfs.output.longOrfs,
+        pfam = PFAM
+    output:
+         pfamI = join(OUT_DIR, 'Trinotate', 'Pfam_results', 'pfam_i.domtblout')
+    log:
+        join(OUT_DIR, 'LOGS', 'Pfam_init.log')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'Pfam_init.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=32000
+    message:
+        """--- Initial Pfam search for TransDecoder """
+    run:
+        shell('hmmscan'
+                ' --cpu 8'
+                ' --domtblout {output.pfamI}'
+                ' {input.pfam}'
+                ' {input.longOrfs} > {log} 2>&1')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## integrate the Blast and Pfam search results into coding region selection
+rule Transdecoder_Predict:
+    input:
+        exons = rules.gffread_exons.output.exons,
+        blastpI = rules.BLASTp_init.output.blastpI,
+        pfamI = rules.Pfam_init.output.pfamI
+    output:
+        TransGff3 = join(OUT_DIR, 'TransDecoder', 'stringtie_merged_exons.fa.transdecoder.gff3'),
+        peptides = join(OUT_DIR, 'TransDecoder', 'stringtie_merged_exons.fa.transdecoder.pep')
+    log:
+        join(OUT_DIR, 'LOGS', 'Transdecoder_Predict.log')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'Transdecoder_Predict.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=32000
+    message:
+        """--- Final ORF prediction """
+    run:
+        shell('TransDecoder.Predict'
+                ' -t {input.exons}'
+                ' --retain_pfam_hits {input.pfamI}'
+                ' --retain_blastp_hits {input.blastpI}'
+                ' --output_dir ' + join(OUT_DIR, 'TransDecoder', 'stringtie_merged_exons.fa.transdecoder_dir') +
+                ' > {log} 2>&1')
+        shell('mv stringtie_merged_exons.fa.transdecoder.* ' + join(OUT_DIR, 'TransDecoder'))
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## map ORF coordinates to the genome and create new GTF file
+rule ORF_mapping_to_genome:
+    input:
+        TransGff3 = rules.Transdecoder_Predict.output.TransGff3,
+        exons = rules.gffread_exons.output.exons,
+        gff3 = rules.gffread_exons.output.gff3
+    output:
+        GenomeGff3 = join(OUT_DIR, 'TransDecoder', 'stringtie_merged_exons.fa.transdecoder.genome.gff3')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'ORF_mapping_to_genome.tsv')
+    threads:
+        2
+    resources:
+        mem_mb=4000
+    message:
+        """--- Generate genome ORF coordinate """
+    run:
+        shell('cdna_alignment_orf_to_genome_orf.pl '
+                ' {input.TransGff3}'
+                ' {input.gff3}'
+                ' {input.exons}'
+                ' > {output.GenomeGff3}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## blast transcripts to UniProt database
+rule BLASTx:
+    input:
+        exons = rules.gffread_exons.output.exons,
+        uniprot = UNIPROT
+    output:
+        blastX = join(OUT_DIR, 'BLAST_results', 'swissprot.blastx.outfmt6')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'BLASTx.tsv')
+    threads:
+        16
+    resources:
+        mem_mb=32000
+    message:
+        """--- Transcript search against SwissProt (BLASTx)"""
+    run:
+        shell('blastx'
+                ' -query {input.exons}'
+                ' -db {input.uniprot}'
+                ' -num_threads 16'
+                ' -max_target_seqs 1'
+                ' -outfmt 6'
+                ' > {output.blastX}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## blast proteins to UniProt database
+rule BLASTp:
+    input:
+        peptides = rules.Transdecoder_Predict.output.peptides,
+        uniprot = UNIPROT
+    output:
+        blastP = join(OUT_DIR, 'BLAST_results', 'swissprot.blastp.outfmt6')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'BLASTp.tsv')
+    threads:
+        16
+    resources:
+        mem_mb=32000
+    message:
+        """--- Peptide search against SwissProt (BLASTp)"""
+    run:
+        shell('blastp'
+                ' -query {input.peptides}'
+                ' -db {input.uniprot}'
+                ' -num_threads 16'
+                ' -max_target_seqs 1'
+                ' -outfmt 6'
+                ' > {output.blastP}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## blast transcripts to custom database
+rule custom_BLASTx:
+    input:
+        exons = rules.gffread_exons.output.exons,
+        custom = CUSTOM
+    output:
+        blastX = join(OUT_DIR, 'BLAST_results', 'custom.blastx.outfmt6')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'custom_BLASTx.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=32000
+    message:
+        """--- Transcript search against Custom database (BLASTx)"""
+    run:
+        shell('blastx'
+                ' -query {input.exons}'
+                ' -db {input.custom}'
+                ' -num_threads 8'
+                ' -max_target_seqs 1'
+                ' -outfmt 6'
+                ' > {output.blastX}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## blast proteins to custom database
+rule custom_BLASTp:
+    input:
+        peptides = rules.Transdecoder_Predict.output.peptides,
+        custom = CUSTOM
+    output:
+        blastP = join(OUT_DIR, 'BLAST_results', 'custom.blastp.outfmt6')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'custom_BLASTp.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=32000
+    message:
+        """--- Peptide search against Custom database (BLASTx)"""
+    run:
+        shell('blastp'
+                ' -query {input.peptides}'
+                ' -db {input.custom}'
+                ' -num_threads 8'
+                ' -max_target_seqs 1'
+                ' -outfmt 6'
+                ' > {output.blastP}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## run Pfam
+rule Pfam:
+    input:
+        peptides = rules.Transdecoder_Predict.output.peptides,
+        pfam = PFAM
+    output:
+        pfam_out = join(OUT_DIR, 'Trinotate', 'Pfam_results', 'TrinotatePFAM.out')
+    log:
+        join(OUT_DIR, 'LOGS', 'Pfam.log')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'Pfam.benchmark.tsv')
+    threads:
+        16
+    resources:
+        mem_mb=32000
+    message:
+        """--- Pfam search with HMMSCAN """
+    run:
+        shell('hmmscan --cpu 16 --domtblout'
+                ' {output.pfam_out}'
+                ' {input.pfam}'
+                ' {input.peptides}'
+                ' > {log} 2>&1')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## Identify signal peptides with SignalP
+rule signalP:
+    input:
+        peptides = rules.Transdecoder_Predict.output.peptides
+    output:
+        signalp = join(OUT_DIR, 'Trinotate', 'signalP.out')
+    log:
+        join(OUT_DIR, 'LOGS', 'signalp.log')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'signalp.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=32000
+    message:
+        """--- Signal peptide earch with signalP"""
+    run:
+        shell('/home/yahmed/software/signalp-4.1/signalp'
+                ' -f short'
+                ' -n {output.signalp}'
+                ' {input.peptides}'
+                ' > {log} 2>&1')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## predict transmembrane domains with TMHMM
+rule TMHMM:
+    input:
+        peptides = rules.Transdecoder_Predict.output.peptides
+    output:
+        tmhmm = join(OUT_DIR, 'Trinotate', 'tmhmm.out')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'tmhmm.benchmark.tsv')
+    threads:
+        8
+    resources:
+        mem_mb=32000
+    message:
+        """--- Transmembrane domain prediction """
+    run:
+        shell('tmhmm --short <'
+                ' {input.peptides}'
+                ' > {output.tmhmm}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## identify rRNA loci with RNAmmer
+rule RNAmmer:
+    input:
+        exons = rules.gffread_exons.output.exons,
+        rnammer = RNAMMER
+    output:
+        rnammer = join(OUT_DIR, 'Trinotate', 'stringtie_merged_exons.fa.rnammer.gff')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'rnammer.tsv')
+    message:
+        """--- Find ribosomal RNA loci"""
+    run:
+        shell('RnammerTranscriptome.pl'
+                ' --transcriptome {input.exons}'
+                ' --path_to_rnammer {input.rnammer}')
+        shell('mv stringtie_merged_exons.fa.rnammer.gff ') + join(OUT_DIR, 'Trinotate')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## populate SQLite database with all annotation data
+rule Trinotate:
+    input:
+        exons = rules.gffread_exons.output.exons,
+        geneTransMap = rules.merge_assemblies.output.geneTransMap,
+        gtf = rules.merge_assemblies.output.asmbly,
+        peptides = rules.Transdecoder_Predict.output.peptides,
+        blastX = rules.BLASTx.output.blastX,
+        blastP = rules.BLASTp.output.blastP,
+        cBlastX = rules.custom_BLASTx.output.blastX,
+        cBlastP = rules.custom_BLASTp.output.blastP,
+        pfam = rules.Pfam.output.pfam_out,
+        signalp = rules.signalP.output.signalp,
+        tmhmm = rules.TMHMM.output.tmhmm,
+        rnammer = rules.RNAmmer.output.rnammer,
+        sqlite = SQLITE
+    output:
+        Annot = join(OUT_DIR, 'Trinotate', 'Trinotate_report.xls'),
+        AnnotGO = join(OUT_DIR, 'Trinotate', 'Trinotate_report.xls.gene_ontology')
+    benchmark:
+        join(OUT_DIR, 'benchmarks', 'trinotate.tsv')
+    message:
+        """--- Combining annotation outputs into SQLite database """
+    run:
+        shell('Trinotate {input.sqlite} init'
+                ' --gene_trans_map {input.geneTransMap}'
+                ' --transcript_fasta {input.exons}'
+                ' --transdecoder_pep {input.peptides}'
+                ' && Trinotate {input.sqlite} LOAD_swissprot_blastp {input.blastP}'
+                ' && Trinotate {input.sqlite} LOAD_swissprot_blastx {input.blastX}'
+                ' && Trinotate {input.sqlite} LOAD_custom_blast --outfmt6 {input.cBlastP} --prog blastp --dbtype ' + os.path.basename(CUSTOM) +
+                ' && Trinotate {input.sqlite} LOAD_custom_blast --outfmt6 {input.cBlastX} --prog blastx --dbtype ' + os.path.basename(CUSTOM) +
+                ' && Trinotate {input.sqlite} LOAD_pfam {input.pfam}'
+                ' && Trinotate {input.sqlite} LOAD_tmhmm {input.tmhmm}'
+                ' && Trinotate {input.sqlite} LOAD_signalp {input.signalp}'
+                ' && Trinotate {input.sqlite} LOAD_rnammer {input.rnammer}'
+                ' && Trinotate {input.sqlite} report > {output.Annot}')
+        shell('/home/yahmed/software/Trinotate-Trinotate-v3.2.1/util/extract_GO_assignments_from_Trinotate_xls.pl --Trinotate_xls {output.Annot} -G -I > {output.AnnotGO}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+#__   ______ ____
+#\ \ / / ___/ ___|
+# \ V / |  _\___ \
+#  | || |_| |___) |
+#  |_| \____|____/
+#
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+
+# rule filter_female_reads_quality:
+#     input:
+#         r1 = female
+#     output:
+#         femaleKmers = join(OUT_DIR, 'jellyfish', 'femaleKmers.jelly')
+#     log:
+#         join(OUT_DIR, 'jellyfish', 'filter_female_reads_quality.log')
+#     benchmark:
+#         join(OUT_DIR, 'jellyfish', 'filter_female_reads_quality.benchmark.tsv')
+#     message:
+#         """--- filtering female Illumina short reads at Phred score of 20 """
+#     run:
+#         shell('zcat {input.r1} |'
+#                 ' jellyfish count'
+#                 ' -m 15'
+#                 ' -o {output.femaleKmers}'
+#                 ' -c 4'
+#                 ' -s 10G'
+#                 ' -t 4'
+#                 ' --canonical'
+#                 ' --min-qual-char=5'
+#                 ' /dev/fd/0')
+#
+# ##--------------------------------------------------------------------------------------##
+# ##--------------------------------------------------------------------------------------##
+#
+#
+# rule female_kmer_fasta:
+#     input:
+#         fJelly = rules.filter_female_reads_quality.output
+#     output:
+#         ffasta = join(OUT_DIR, 'kmer_fasta', 'female.fasta.gz')
+#     log:
+#         join(OUT_DIR, 'kmer_fasta', 'female_kmer_fasta.log')
+#     benchmark:
+#         join(OUT_DIR, 'kmer_fasta', 'female_kmer_fasta.benchmark.tsv')
+#     message:
+#         """--- filtering at a minimum frequency of 5, and production of the short read female fasta file """
+#     run:
+#         shell('jellyfish dump'
+#                 ' --lower-count=5'
+#                 ' {input.fJelly} |'
+#                 ' gzip -c >'
+#                 ' {output.ffasta}')
+#
+# ##--------------------------------------------------------------------------------------##
+# ##--------------------------------------------------------------------------------------##
+#
+#
+# rule female_bitarray:
+#     input:
+#         trace = rules.female_kmer_fasta.output
+#     output:
+#         join(OUT_DIR, 'Bitarray', 'female.trace.gz')
+#     log:
+#         join(OUT_DIR, 'Bitarray', 'female_bitarray.log')
+#     benchmark:
+#         join(OUT_DIR, 'Bitarray', 'female_bitarray.benchmark.tsv')
+#     message:
+#         """--- production of the bitarray representing the female k‐mers """
+#     run:
+#         shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && cp  ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && YGS.pl'
+#                 ' kmer_size=15'
+#                 ' mode=trace'
+#                 ' trace={input.trace}')
+#         shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'female.trace.gz') + ' ' + join(OUT_DIR, 'Bitarray'))
+#         shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+
+# ##--------------------------------------------------------------------------------------##
+# ##--------------------------------------------------------------------------------------##
+#
+#
+#
+# rule filter_male_reads_quality:
+#     input:
+#         r1 = male
+#     output:
+#         join(OUT_DIR, 'jellyfish', 'maleKmers.jelly')
+#     log:
+#         join(OUT_DIR, 'jellyfish', 'filter_male_reads_quality.log')
+#     benchmark:
+#         join(OUT_DIR, 'jellyfish', 'filter_male_reads_quality.benchmark.tsv')
+#     message:
+#         """--- filtering male Illumina short reads at Phred score of 20 """
+#     run:
+#         shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && cp {input.r1} ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && zcat *.fastq.gz |'
+#                 ' jellyfish count'
+#                 ' -m 15'
+#                 ' -o maleKmers.jelly'
+#                 ' -c 4'
+#                 ' -s 10G'
+#                 ' -t 4'
+#                 ' --canonical'
+#                 ' --min-qual-char=5'
+#                 ' /dev/fd/0')
+#         shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'maleKmers.jelly') + ' ' + join(OUT_DIR, 'jellyfish'))
+#         shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+#
+# ##--------------------------------------------------------------------------------------##
+# ##--------------------------------------------------------------------------------------##
+#
+#
+# rule male_kmer_fasta:
+#     input:
+#         fJelly = rules.filter_male_reads_quality.output
+#     output:
+#         join(OUT_DIR, 'kmer_fasta', 'male.fasta.gz')
+#     log:
+#         join(OUT_DIR, 'kmer_fasta', 'male_kmer_fasta.log')
+#     benchmark:
+#         join(OUT_DIR, 'kmer_fasta', 'male_kmer_fasta.benchmark.tsv')
+#     message:
+#         """--- filtering at a minimum frequency of 5, and production of the short‐read male fasta file """
+#     run:
+#         shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && cp {input.fJelly} ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && jellyfish dump'
+#                 ' --lower-count=5'
+#                 ' maleKmers.jelly |'
+#                 ' gzip -c >'
+#                 ' male.fasta.gz')
+#         shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'male.fasta.gz') + ' ' + join(OUT_DIR, 'kmer_fasta'))
+#         shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+#
+# ##--------------------------------------------------------------------------------------##
+# ##--------------------------------------------------------------------------------------##
+#
+#
+#
+# rule male_bitarray:
+#     input:
+#         trace = rules.male_kmer_fasta.output
+#     output:
+#         join(OUT_DIR, 'Bitarray', 'male.trace.gz')
+#     log:
+#         join(OUT_DIR, 'Bitarray', 'male_bitarray.log')
+#     benchmark:
+#         join(OUT_DIR, 'Bitarray', 'male_bitarray.benchmark.tsv')
+#     message:
+#         """--- production of the bit‐array representing the male k‐mers """
+#     run:
+#         shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && cp {input.trace} ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && YGS.pl'
+#                 ' kmer_size=15'
+#                 ' mode=trace'
+#                 ' trace=male.fasta.gz')
+#         shell('mv ' + join(WORK_DIR, USER, JOB_ID, 'male.trace.gz') + ' ' + join(OUT_DIR, 'Bitarray'))
+#         shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+#
+# ##--------------------------------------------------------------------------------------##
+# ##--------------------------------------------------------------------------------------##
+#
+#
+# rule genome_kmers:
+#     input:
+#         assembly = genome
+#     output:
+#         pbBitarray = join(OUT_DIR, 'genome', rstrip(os.path.basename(genome), '.fa') + '.gen_rep.gz'),
+#         ctg = join(OUT_DIR, 'genome', rstrip(os.path.basename(genome), '.fa') + '.ctg_rep.gz'),
+#         contigResult = join(OUT_DIR, 'genome', rstrip(os.path.basename(genome), '.fa') + '.contig_result')
+#     log:
+#         join(OUT_DIR, 'genome','genome_kmers.log')
+#     benchmark:
+#         join(OUT_DIR, 'genome','genome_kmers.benchmark.tsv')
+#     message:
+#         """--- production of the bit‐array representing repetitive k-mers of the genome  """
+#     run:
+#         shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && cp {input.assembly} ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && YGS.pl'
+#                 ' kmer_size=15'
+#                 ' mode=contig'
+#                 ' contig=' + os.path.basename(genome))
+#         shell('mv ' + join(WORK_DIR, USER, JOB_ID, '*gz') + ' ' + join(WORK_DIR, USER, JOB_ID, '*.contig_result') + ' ' + join(OUT_DIR, 'genome'))
+#         shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+#
+# ##--------------------------------------------------------------------------------------##
+# ##--------------------------------------------------------------------------------------##
+#
+# rule final_run:
+#     input:
+#         femTrace = rules.female_bitarray.output,
+#         genomeKmers = rules.genome_kmers.output.pbBitarray,
+#         maleTrace = rules.male_bitarray.output,
+#         assembly = genome
+#     output:
+#         finalResult = join(OUT_DIR, 'result', rstrip(os.path.basename(genome), '.fa') + '_female_male.final_result')
+#     log:
+#         join(OUT_DIR, 'result','final_run.log')
+#     benchmark:
+#         join(OUT_DIR, 'result','final_run.benchmark.tsv')
+#     message:
+#         """--- final YGS run  """
+#     run:
+#         shell('mkdir -p ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && cp {input.femTrace} {input.genomeKmers} {input.maleTrace} {input.assembly} ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && cd ' + join(WORK_DIR, USER, JOB_ID) +
+#                 ' && YGS.pl'
+#                 ' kmer_size=15'
+#                 ' mode=final_run'
+#                 ' contig=' + os.path.basename(genome) +
+#                 ' trace=female.trace.gz'
+#                 ' male_trace=male.trace.gz'
+#                 ' gen_rep='+ rstrip(os.path.basename(genome), '.fa') + '.gen_rep.gz')
+#         shell('mv ' + join(WORK_DIR, USER, JOB_ID, '*.final_result') + ' ' + join(OUT_DIR, 'result'))
+#         shell('rm -r ' + join(WORK_DIR, USER, JOB_ID))
+#
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+rule bt2_index:
+    input:
+        assembly = rules.RepeatMasker_JB.output.masked
+    output:
+        index = join(OUT_DIR, 'RepeatMasker_JB', os.path.basename(DNA) + '.masked.rev.1.bt2')
+    log:
+        join(OUT_DIR, 'genome', 'bt2_index.log')
+    benchmark:
+        join(OUT_DIR, 'genome', 'bt2_index.benchmark.tsv')
+    message:
+        """--- building bowtie2 index  """
+    run:
+        shell('bowtie2-build {input.assembly} ' + join(OUT_DIR, 'RepeatMasker_JB', os.path.basename(DNA) + '.masked'))
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule bowtie2_female:
+    input:
+        r1 = female,
+        index = rules.bt2_index.output.index
+    output:
+        bam = join(OUT_DIR, 'Bowtie2', 'female.csorted.bowtie2.bam')
+    log:
+        join(OUT_DIR, 'Bowtie2', 'female.bowtie2.log')
+    benchmark:
+        join(OUT_DIR, 'Bowtie2', 'female.benchmark.tsv')
+    message:
+        """--- Mapping female reads with Bowtie2."""
+    run:
+        shell('(bowtie2'
+                ' -p 8'
+                ' -x ' + join(OUT_DIR, 'RepeatMasker_JB', os.path.basename(DNA) + '.masked') +
+                ' -U {input.r1}'
+                ') 2> {log}'
+                ' | samtools sort -@ 8 -o {output.bam} -')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule qualiMap_female:
+    input:
+        bam = join(OUT_DIR, 'Bowtie2', 'female.csorted.bowtie2.bam')
+    output:
+        bamqc = join(OUT_DIR, 'Bowtie2', 'female_bamqc', 'qualimapReport.html')
+    log:
+        join(OUT_DIR, 'Bowtie2', 'female_bamqc.log')
+    benchmark:
+        join(OUT_DIR, 'Bowtie2', 'female_bamqc_benchmark.tsv')
+    message:
+        """--- Evaluating mapping quality with QualiMap for female sample ."""
+    run:
+        shell('qualimap bamqc'
+                ' -bam {input.bam}'
+                ' -c'
+                ' -outdir ' + join(OUT_DIR, 'Bowtie2', 'female_bamqc') +
+                ' -nt 8'
+                ' 2> {log}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule bowtie2_male:
+    input:
+        r1 = male,
+        index = rules.bt2_index.output.index
+    output:
+        bam = join(OUT_DIR, 'Bowtie2', 'male.csorted.bowtie2.bam')
+    log:
+        join(OUT_DIR, 'Bowtie2', 'male.bowtie2.log')
+    benchmark:
+        join(OUT_DIR, 'Bowtie2', 'male.benchmark.tsv')
+    message:
+        """--- Mapping male reads with Bowtie2."""
+    run:
+        shell('(bowtie2'
+                ' -p 8'
+                ' -x ' + join(OUT_DIR, 'RepeatMasker_JB', os.path.basename(DNA) + '.masked') +
+                ' -U {input.r1}'
+                ') 2> {log}'
+                ' | samtools sort -@ 8 -o {output.bam} -')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule qualiMap_male:
+    input:
+        bam = join(OUT_DIR, 'Bowtie2', 'male.csorted.bowtie2.bam')
+    output:
+        bamqc = join(OUT_DIR, 'Bowtie2', 'male_bamqc', 'qualimapReport.html')
+    log:
+        join(OUT_DIR, 'Bowtie2', 'male_bamqc.log')
+    benchmark:
+        join(OUT_DIR, 'Bowtie2', 'male_bamqc_benchmark.tsv')
+    message:
+        """--- Evaluating mapping quality with QualiMap for male sample ."""
+    run:
+        shell('qualimap bamqc'
+                ' -bam {input.bam}'
+                ' -c'
+                ' -outdir ' + join(OUT_DIR, 'Bowtie2', 'male_bamqc') +
+                ' -nt 8'
+                ' 2> {log}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+
+rule coverage_female:
+    input:
+        bam = rules.bowtie2_female.output.bam
+    output:
+        bcov = join(OUT_DIR, 'Bowtie2', 'female.coverage.txt')
+    log:
+        join(OUT_DIR, 'Bowtie2', 'female.coverage.log')
+    benchmark:
+        join(OUT_DIR, 'Bowtie2', 'female.coverage.benchmark.tsv')
+    message:
+        """--- Generating coverage histograms with bedtools."""
+    run:
+        shell('genomeCoverageBed '
+                ' -ibam {input.bam}'
+                ' -max 50 '
+                ' > {output.bcov}')
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+rule coverage_male:
+    input:
+        bam = rules.bowtie2_male.output.bam
+    output:
+        bcov = join(OUT_DIR, 'Bowtie2', 'male.coverage.txt')
+    log:
+        join(OUT_DIR, 'Bowtie2', 'male.coverage.log')
+    benchmark:
+        join(OUT_DIR, 'Bowtie2', 'male.coverage.benchmark.tsv')
+    message:
+        """--- Generating coverage histograms with bedtools."""
+    run:
+        shell('genomeCoverageBed '
+                ' -ibam {input.bam}'
+                ' -max 50 '
+                ' > {output.bcov}')
+
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+# __  __       _ _   _  ___   ____
+#|  \/  |_   _| | |_(_)/ _ \ / ___|
+#| |\/| | | | | | __| | | | | |
+#| |  | | |_| | | |_| | |_| | |___
+#|_|  |_|\__,_|_|\__|_|\__\_\\____|
+#
+##--------------------------------------------------------------------------------------##
+##--------------------------------------------------------------------------------------##
+
+## Rule to collate fastQC and Bowtie2 outputs with multiQC
+rule multiQC:
+    input:
+        # join(OUT_DIR, 'Bowtie2', 'male.csorted.bowtie2.bam'),
+        # join(OUT_DIR, 'Bowtie2', 'female.csorted.bowtie2.bam'),
+        # join(OUT_DIR, 'Bowtie2', 'female_bamqc', 'qualimapReport.html'),
+        # join(OUT_DIR, 'Bowtie2', 'male_bamqc', 'qualimapReport.html'),
+        expand(join(OUT_DIR, 'VCF', 'BWA_GATK', '{sample}', '{sample}.evalGrp'), sample = dSAMPLES),
+        expand(join(OUT_DIR, 'BWA', '{sample}', 'bamqc', 'qualimapReport.html'), sample = dSAMPLES),
+        expand(join(OUT_DIR, 'HISAT-2', '{sample}', '{sample}.csorted.hisat2.bam'), sample = rSAMPLES),
+        expand(join(OUT_DIR, 'HISAT-2', '{sample}', '{sample}.qualmap_rnaseq', 'qualimapReport.html'), sample = rSAMPLES)
+    output:
+        file = join(OUT_DIR, 'MultiQC', 'multiqc_report.html')
+    log:
+        join(OUT_DIR, 'MultiQC', 'multiQC.log')
+    benchmark:
+        join(OUT_DIR, 'MultiQC', 'multiQC.benchmark.tsv')
+    message:
+        """--- Running MultiQC """
+    run:
+        shell('ls -1 ' + join(OUT_DIR) + '/VCF/BWA_GATK/*/*.evalGrp >> ' + join(OUT_DIR, 'MultiQC', 'summary_files.txt'))
+        shell('ls -1 ' + join(OUT_DIR) + '/BWA/*/bamqc | grep ":" | sed "s/://g" >> ' + join(OUT_DIR, 'MultiQC', 'summary_files.txt'))
+        shell('ls -1 ' + join(OUT_DIR) + '/HISAT-2/*/*log > ' + join(OUT_DIR, 'MultiQC', 'summary_files.txt'))
+        shell('ls -1 ' + join(OUT_DIR) + '/HISAT-2/*/*.qualmap_rnaseq | grep ":" | sed "s/://g" >> ' + join(OUT_DIR, 'MultiQC', 'summary_files.txt'))
+        # shell('ls -1 ' + join(OUT_DIR) + '/Bowtie2/*.bowtie2.log > ' + join(OUT_DIR, 'MultiQC', 'summary_files.txt'))
+        # shell('ls -1 ' + join(OUT_DIR) + '/Bowtie2/*_bamqc | grep ":" | sed "s/://g" >> ' + join(OUT_DIR, 'MultiQC', 'summary_files.txt'))
+
+        shell('multiqc'
+                ' -f'
+                ' -o ' + join(OUT_DIR, 'MultiQC') + ' -d -dd 1 -l ' + join(OUT_DIR, 'MultiQC', 'summary_files.txt') +
+                ' > {log} 2>&1')

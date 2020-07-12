@@ -1,0 +1,322 @@
+{
+    "f_abdomen_without_digestive_or_reproductive_system_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_abdomen_without_digestive_or_reproductive_system_1.R1.fastq.gz"
+        ]
+    },
+    "f_abdomen_without_digestive_or_reproductive_system_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_abdomen_without_digestive_or_reproductive_system_2.R1.fastq.gz"
+        ]
+    },
+    "f_abdomen_without_digestive_or_reproductive_system_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_abdomen_without_digestive_or_reproductive_system_3.R1.fastq.gz"
+        ]
+    },
+    "f_abdomen_without_digestive_or_reproductive_system_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_abdomen_without_digestive_or_reproductive_system_4.R1.fastq.gz"
+        ]
+    },
+    "f_digestive_plus_excretory_system_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_digestive_plus_excretory_system_1.R1.fastq.gz"
+        ]
+    },
+    "f_digestive_plus_excretory_system_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_digestive_plus_excretory_system_2.R1.fastq.gz"
+        ]
+    },
+    "f_digestive_plus_excretory_system_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_digestive_plus_excretory_system_3.R1.fastq.gz"
+        ]
+    },
+    "f_digestive_plus_excretory_system_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_digestive_plus_excretory_system_4.R1.fastq.gz"
+        ]
+    },
+    "f_gonad_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_gonad_1.R1.fastq.gz"
+        ]
+    },
+    "f_gonad_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_gonad_2.R1.fastq.gz"
+        ]
+    },
+    "f_gonad_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_gonad_3.R1.fastq.gz"
+        ]
+    },
+    "f_gonad_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_gonad_4.R1.fastq.gz"
+        ]
+    },
+    "f_head_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_head_1.R1.fastq.gz"
+        ]
+    },
+    "f_head_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_head_2.R1.fastq.gz"
+        ]
+    },
+    "f_head_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_head_3.R1.fastq.gz"
+        ]
+    },
+    "f_head_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_head_4.R1.fastq.gz"
+        ]
+    },
+    "f_reproductive_system_without_gonad_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_reproductive_system_without_gonad_1.R1.fastq.gz"
+        ]
+    },
+    "f_reproductive_system_without_gonad_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_reproductive_system_without_gonad_2.R1.fastq.gz"
+        ]
+    },
+    "f_reproductive_system_without_gonad_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_reproductive_system_without_gonad_3.R1.fastq.gz"
+        ]
+    },
+    "f_reproductive_system_without_gonad_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_reproductive_system_without_gonad_4.R1.fastq.gz"
+        ]
+    },
+    "f_thorax_without_digestive_system_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_thorax_without_digestive_system_1.R1.fastq.gz"
+        ]
+    },
+    "f_thorax_without_digestive_system_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_thorax_without_digestive_system_2.R1.fastq.gz"
+        ]
+    },
+    "f_thorax_without_digestive_system_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_thorax_without_digestive_system_3.R1.fastq.gz"
+        ]
+    },
+    "f_thorax_without_digestive_system_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_thorax_without_digestive_system_4.R1.fastq.gz"
+        ]
+    },
+    "f_whole_body_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_whole_body_1.R1.fastq.gz"
+        ]
+    },
+    "f_whole_body_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_whole_body_2.R1.fastq.gz"
+        ]
+    },
+    "f_whole_body_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_whole_body_3.R1.fastq.gz"
+        ]
+    },
+    "f_whole_body_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/f_whole_body_4.R1.fastq.gz"
+        ]
+    },
+    "m_abdomen_without_digestive_or_reproductive_system_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_abdomen_without_digestive_or_reproductive_system_1.R1.fastq.gz"
+        ]
+    },
+    "m_abdomen_without_digestive_or_reproductive_system_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_abdomen_without_digestive_or_reproductive_system_2.R1.fastq.gz"
+        ]
+    },
+    "m_abdomen_without_digestive_or_reproductive_system_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_abdomen_without_digestive_or_reproductive_system_3.R1.fastq.gz"
+        ]
+    },
+    "m_abdomen_without_digestive_or_reproductive_system_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_abdomen_without_digestive_or_reproductive_system_4.R1.fastq.gz"
+        ]
+    },
+    "m_digestive_plus_excretory_system_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_digestive_plus_excretory_system_1.R1.fastq.gz"
+        ]
+    },
+    "m_digestive_plus_excretory_system_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_digestive_plus_excretory_system_2.R1.fastq.gz"
+        ]
+    },
+    "m_digestive_plus_excretory_system_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_digestive_plus_excretory_system_3.R1.fastq.gz"
+        ]
+    },
+    "m_digestive_plus_excretory_system_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_digestive_plus_excretory_system_4.R1.fastq.gz"
+        ]
+    },
+    "m_gonad_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_gonad_1.R1.fastq.gz"
+        ]
+    },
+    "m_gonad_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_gonad_2.R1.fastq.gz"
+        ]
+    },
+    "m_gonad_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_gonad_3.R1.fastq.gz"
+        ]
+    },
+    "m_gonad_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_gonad_4.R1.fastq.gz"
+        ]
+    },
+    "m_head_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_head_1.R1.fastq.gz"
+        ]
+    },
+    "m_head_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_head_2.R1.fastq.gz"
+        ]
+    },
+    "m_head_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_head_3.R1.fastq.gz"
+        ]
+    },
+    "m_head_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_head_4.R1.fastq.gz"
+        ]
+    },
+    "m_reproductive_system_without_gonad_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_reproductive_system_without_gonad_1.R1.fastq.gz"
+        ]
+    },
+    "m_reproductive_system_without_gonad_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_reproductive_system_without_gonad_2.R1.fastq.gz"
+        ]
+    },
+    "m_reproductive_system_without_gonad_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_reproductive_system_without_gonad_3.R1.fastq.gz"
+        ]
+    },
+    "m_reproductive_system_without_gonad_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_reproductive_system_without_gonad_4.R1.fastq.gz"
+        ]
+    },
+    "m_thorax_without_digestive_system_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_thorax_without_digestive_system_1.R1.fastq.gz"
+        ]
+    },
+    "m_thorax_without_digestive_system_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_thorax_without_digestive_system_2.R1.fastq.gz"
+        ]
+    },
+    "m_thorax_without_digestive_system_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_thorax_without_digestive_system_3.R1.fastq.gz"
+        ]
+    },
+    "m_thorax_without_digestive_system_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_thorax_without_digestive_system_4.R1.fastq.gz"
+        ]
+    },
+    "m_whole_body_1": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_whole_body_1.R1.fastq.gz"
+        ]
+    },
+    "m_whole_body_2": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_whole_body_2.R1.fastq.gz"
+        ]
+    },
+    "m_whole_body_3": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_whole_body_3.R1.fastq.gz"
+        ]
+    },
+    "m_whole_body_4": {
+        "R1": [
+            "/home/yahmed/SRA/virilis_NIH/fastq/m_whole_body_4.R1.fastq.gz"
+        ]
+    },
+    "virilis_AG_2": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_AG_2.R1.fq.gz"
+        ]
+    },
+    "virilis_AG_3": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_AG_3.R1.fq.gz"
+        ]
+    },
+    "virilis_EB_1": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_EB_1.R1.fq.gz"
+        ]
+    },
+    "virilis_EB_2": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_EB_2.R1.fq.gz"
+        ]
+    },
+    "virilis_carcass_2": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_carcass_2.R1.fq.gz"
+        ]
+    },
+    "virilis_carcass_3": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_carcass_3.R1.fq.gz"
+        ]
+    },
+    "virilis_testes_2": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_testes_2.R1.fq.gz"
+        ]
+    },
+    "virilis_testes_3": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_testes_3.R1.fq.gz"
+        ]
+    }
+}

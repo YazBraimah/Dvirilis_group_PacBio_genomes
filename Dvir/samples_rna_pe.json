@@ -1,0 +1,26 @@
+{
+    "virilis_AG_1": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_AG_1.R1.fq.gz"
+        ],
+        "R2": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_AG_1.R2.fq.gz"
+        ]
+    },
+    "virilis_carcass_1": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_carcass_1.R1.fq.gz"
+        ],
+        "R2": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_carcass_1.R2.fq.gz"
+        ]
+    },
+    "virilis_testes_1": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_testes_1.R1.fq.gz"
+        ],
+        "R2": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/virilis_testes_1.R2.fq.gz"
+        ]
+    }
+}

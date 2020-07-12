@@ -1,0 +1,50 @@
+{
+    "M_AG_1": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/novamexicana_reads/M_AG_1.R1.fq.gz"
+        ],
+        "R2": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/novamexicana_reads/M_AG_1.R2.fq.gz"
+        ]
+    },
+    "M_CR_1": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/novamexicana_reads/M_CR_1.R1.fq.gz"
+        ],
+        "R2": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/novamexicana_reads/M_CR_1.R2.fq.gz"
+        ]
+    },
+    "M_TS_1": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/novamexicana_reads/M_TS_1.R1.fq.gz"
+        ],
+        "R2": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/novamexicana_reads/M_TS_1.R2.fq.gz"
+        ]
+    },
+    "americana_AG_1": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/americana_AG_1.R1.fq.gz"
+        ],
+        "R2": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/americana_AG_1.R2.fq.gz"
+        ]
+    },
+    "americana_carcass_1": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/americana_carcass_1.R1.fq.gz"
+        ],
+        "R2": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/americana_carcass_1.R2.fq.gz"
+        ]
+    },
+    "americana_testes_1": {
+        "R1": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/americana_testes_1.R1.fq.gz"
+        ],
+        "R2": [
+            "/home/yahmed/Cornell_folder/fsrv5_data2/ya76/Virilis_group_Stuff/Male_RNAseq/READS/americana_testes_1.R2.fq.gz"
+        ]
+    }
+}

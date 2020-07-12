@@ -1,0 +1,147 @@
+{
+    "Dame_CI0515": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dame_CI0515.R1.fq.gz"
+        ]
+    },
+    "Dame_CI0518": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dame_CI0518.R1.fq.gz"
+        ]
+    },
+    "Dame_CI0538": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dame_CI0538.R1.fq.gz"
+        ]
+    },
+    "Dame_G96": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dame_G96.R1.fq.gz"
+        ]
+    },
+    "Dame_MK1012": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dame_MK1012.R1.fq.gz"
+        ]
+    },
+    "Dame_ML0738": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dame_ML0738.R1.fq.gz"
+        ]
+    },
+    "Dame_ML975": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dame_ML975.R1.fq.gz"
+        ]
+    },
+    "Dame_SB": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dame_SB.R1.fq.gz"
+        ]
+    },
+    "Dnov_nm12": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dnov_nm12.R1.fq.gz"
+        ]
+    },
+    "Dnov_nm13": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dnov_nm13.R1.fq.gz"
+        ]
+    },
+    "Dnov_nm14": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dnov_nm14.R1.fq.gz"
+        ]
+    },
+    "Dnov_nm4": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dnov_nm4.R1.fq.gz"
+        ]
+    },
+    "Dnov_nm8": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dnov_nm8.R1.fq.gz"
+        ]
+    },
+    "Dvir_England1430": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_England1430.R1.fq.gz"
+        ]
+    },
+    "Dvir_England1431": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_England1431.R1.fq.gz"
+        ]
+    },
+    "Dvir_Toyama15": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_Toyama15.R1.fq.gz"
+        ]
+    },
+    "Dvir_v00": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_v00.R1.fq.gz"
+        ]
+    },
+    "Dvir_v08": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_v08.R1.fq.gz"
+        ]
+    },
+    "Dvir_v118": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_v118.R1.fq.gz"
+        ]
+    },
+    "Dvir_v47": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_v47.R1.fq.gz"
+        ]
+    },
+    "Dvir_v48": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_v48.R1.fq.gz"
+        ]
+    },
+    "Dvir_v49": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_v49.R1.fq.gz"
+        ]
+    },
+    "Dvir_v51": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_v51.R1.fq.gz"
+        ]
+    },
+    "Dvir_v52": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_v52.R1.fq.gz"
+        ]
+    },
+    "Dvir_v85": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_v85.R1.fq.gz"
+        ]
+    },
+    "Dvir_v86": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_v86.R1.fq.gz"
+        ]
+    },
+    "Dvir_v9": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_v9.R1.fq.gz"
+        ]
+    },
+    "Dvir_vww8": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_vww8.R1.fq.gz"
+        ]
+    },
+    "Dvir_vzzp01": {
+        "R1": [
+            "/home/yahmed/virilis_group_population_genomics/reads/Dvir_vzzp01.R1.fq.gz"
+        ]
+    }
+}
