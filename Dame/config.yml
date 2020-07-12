@@ -1,0 +1,32 @@
+# Path to an uncompressed FASTA file with all chromosome sequences.
+DNA: '/home/yahmed/PacBio_Genomes_virilis_group/Assemblies/D.americana/DamePacBio_muller.fasta'
+BWA_INDEX: '/home/yahmed/PacBio_Genomes_virilis_group/Assemblies/D.americana/index/bwa/DamePacBio_muller.fasta'
+HS2_INDEX: '/home/yahmed/PacBio_Genomes_virilis_group/Assemblies/D.americana/index/hisat2/DamePacBio_muller_tran'
+
+# Path to a folder where final files will be written.
+OUT_DIR: '/home/yahmed/PacBio_Genomes_virilis_group/SnakemakePipelines/Dame/OUTPUT'
+HOME_DIR: '/home/yahmed/PacBio_Genomes_virilis_group/SnakemakePipelines/Dame'
+
+# Path to database files and Trdvinotate home directory.
+UNIPROT: '/home/yahmed/Trinotate/20160324/uniprot_sprot.pep'
+CUSTOM: '/home/yahmed/Trinotate/dvir1.06/dvir.proteins.fasta'
+PFAM: '/home/yahmed/Trinotate/20160324/Pfam-A.hmm'
+SQLITE: '/home/yahmed/PacBio_Genomes_virilis_group/SnakemakePipelines/Dame/Trinotate.sqlite'
+RNAMMER: '/home/yahmed/software/rnammmer/rnammer'
+
+# Path to a JSON file with DNAseq samples and their corresponding FASTQ files.
+PE_DNA_SAMPLES_JSON: '/home/yahmed/PacBio_Genomes_virilis_group/SnakemakePipelines/Dame/samples_dna_pe.json'
+SE_DNA_SAMPLES_JSON: '/home/yahmed/PacBio_Genomes_virilis_group/SnakemakePipelines/Dame/samples_dna_se.json'
+
+# Path to a JSON file with RNAseq samples and their corresponding FASTQ files.
+PE_RNA_SAMPLES_JSON: '/home/yahmed/PacBio_Genomes_virilis_group/SnakemakePipelines/Dame/samples_rna_pe.json'
+SE_RNA_SAMPLES_JSON: '/home/yahmed/PacBio_Genomes_virilis_group/SnakemakePipelines/Dame/samples_rna_se.json'
+
+### YGS config files
+# # Path to female DNAseq reads
+female_reads: '/home/yahmed/Cornell_folder/fsrv5_data1/ya76/DNAseq/Y.chrom/Dame_female.fastq.gz'
+# Path to male DNAseq reads (optional)
+male_reads: '/home/yahmed/Cornell_folder/fsrv5_data1/ya76/DNAseq/Y.chrom/Dame_male.fastq.gz'
+
+# Repeat Library for RepeatMasker
+repLib: '/home/yahmed/Drosophila/virilis/JB_Dvir_repeat_library.fasta'
