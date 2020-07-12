@@ -1,0 +1,12 @@
+# Path to female DNAseq reads 
+female_reads: '/fs/cbsufsrv5/data1/ya76/DNAseq/Y.chrom/Dame_female.fastq.gz'
+
+# Path to male DNAseq reads (optional)
+male_reads: '/fs/cbsufsrv5/data1/ya76/DNAseq/Y.chrom/Dame_male.fastq.gz'
+
+# Path to PacBio genome assembly
+genome: '/home/ya76/Platinum_Genomes/GENOMES/D.americana/DamePacBio_ME_dupsRem_repMasked_jb.fa'
+
+# set output dir
+OUT_DIR: '/fs/cbsubscb14/storage/ya76/Snakemake.Output.Folders/YGS.PacBio.Dame_dupsRem_repMasked_JB'
+WORK_DIR: '/workdir'
