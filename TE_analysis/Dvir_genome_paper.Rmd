@@ -1,0 +1,633 @@
+---
+title: "virilis_genome_paper"
+author: "Jullien Flynn"
+date: '2020-06-22'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+First, let's look at the TE breakpoint analysis
+
+```{r}
+
+Dvir_breakpoints <- read.csv('/Users/jullienflynn/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/DAIBAM/Dvir_breakpoint_TEs_forR.csv', header=T)
+Dvir_breakpoints
+
+library(ggplot2)
+
+
+ggplot() +
+  geom_bar(data = Dvir_breakpoints, aes(y = base_pairs, x = Inversion, fill = factor(Type, levels = c("DAIBAM", "DNA", "LTR", "LINE", "Unknown", "Other", "RC"))), stat = "identity", position = 'fill') +
+  scale_fill_manual(values = c("#FFCC00", "#33CC66", "#9966FF", "#FF33CC", "#00CCFF", "#CCCCCC", "#FF6600")) +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw() + 
+  theme(legend.title=element_blank()) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+Dnov_breakpoints <- read.csv('/Users/jullienflynn/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/DAIBAM/Dnov_breakpoints_TEs_forR.csv', header=T)
+
+ggplot() +
+  geom_bar(data = Dnov_breakpoints, aes(y = base_pairs, x = Inversion, fill = factor(Type, levels = c("DAIBAM", "DNA", "LTR", "LINE", "Unknown", "Other", "RC"))), stat = "identity", position = 'fill') +
+  scale_fill_manual(values = c("#FFCC00", "#33CC66", "#9966FF", "#FF33CC", "#00CCFF", "#CCCCCC", "#FF6600")) +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw() + 
+  theme(legend.title=element_blank()) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+Dame_breakpoints <- read.csv('/Users/jullienflynn/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/DAIBAM/Dame_breakpoints_TEs_forR.csv', header=T)
+
+ggplot() +
+  geom_bar(data = Dame_breakpoints, aes(y = base_pairs, x = Inversion, fill = factor(Type, levels = c("DAIBAM", "DNA", "LTR", "LINE", "Unknown", "Other", "RC"))), stat = "identity", position = 'fill') +
+  scale_fill_manual(values = c("#FFCC00", "#33CC66", "#9966FF", "#FF33CC", "#00CCFF", "#CCCCCC", "#FF6600")) +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw() + 
+  theme(legend.title=element_blank()) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+Genome-wide TE annotation: pie charts 
+
+```{r}
+library("ggplot2")
+
+
+Dvir_masking <- read.csv('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/TE_landscapes/Dvir_masking.csv', header=T)
+Dvir_masking
+
+Dvir_masking$Type <- factor(Dvir_masking$Type, levels=c("DNA", "Helitron/DINEs", "LTR", "LINE", "Other", "Unknown", "Non-TE"))
+
+ggplot (Dvir_masking, aes(x = "", y = perc_mask, fill = Type)) +
+  geom_bar(width=1, stat="identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF", "#CCCCCC")) +
+  theme_void()
+
+# virilis old genome.
+Dvir_masking <- read.csv('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/TE_landscapes/virilis_caf1.csv', header=T)
+Dvir_masking
+
+Dvir_masking$Type <- factor(Dvir_masking$Type, levels=c("DNA", "RC", "LTR", "LINE", "Unknown", "Non-TE"))
+
+ggplot (Dvir_masking, aes(x = "", y = perc_mask, fill = Type)) +
+  geom_bar(width=1, stat="identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#00CCFF", "#CCCCCC")) +
+  theme_void()
+
+
+# Dnovamexicana
+
+Dnov_masking <- read.csv('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/TE_landscapes/Dnov_masking.csv', header=T)
+Dnov_masking
+
+Dnov_masking$Type <- factor(Dnov_masking$Type, levels=c("DNA", "Helitron/DINEs", "LTR", "LINE", "Other", "Unknown", "Non-TE"))
+
+ggplot (Dnov_masking, aes(x = "", y = perc_mask, fill = Type)) +
+  geom_bar(width=1, stat="identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF", "#CCCCCC")) +
+  theme_void()
+
+# D americana
+
+Dame_masking <- read.csv('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/TE_landscapes/Dame_masking.csv', header=T)
+Dame_masking
+
+Dame_masking$Type <- factor(Dame_masking$Type, levels=c("DNA", "Helitron/DINEs", "LTR", "LINE", "Other", "Unknown", "Non-TE"))
+
+ggplot (Dame_masking, aes(x = "", y = perc_mask, fill = Type)) +
+  geom_bar(width=1, stat="identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF", "#CCCCCC")) +
+  theme_void()
+
+```
+Genome-wide and Y-specific TE annotation: landscape plots
+
+```{r}
+Dvir_landscape <- read.delim('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/landscape/Feb7/Apr9_dvir_mod/Dvir_genome.fa.out.landscape.Div.Rclass.tab.sed.txt', header=F, sep="\t")
+types <- Dvir_landscape$V1
+types
+Dvir_landscape$V1 <- NULL
+rownames(Dvir_landscape) <- types
+RC_DINE <- Dvir_landscape["DINE",] + Dvir_landscape["RC",]
+to_remove <- c("DINE", "RC")
+Dvir_landscape_edit <- Dvir_landscape[!row.names(Dvir_landscape)%in%to_remove,]
+Dvir_landscape_edit2 <- rbind(Dvir_landscape_edit, RC_DINE)
+Dvir_landscape_edit2
+
+# ok, got it.
+
+Types <- c()
+windows <- c()
+Proportion <- c()
+
+for (i in 1:nrow(Dvir_landscape_edit2)) {
+  Types <- c(Types, rep(rownames(Dvir_landscape_edit2)[i], times=40)) 
+  windows <- c(windows, c(1:40))
+  Proportion <- c(Proportion, as.numeric(Dvir_landscape_edit2[i,1:ncol(Dvir_landscape_edit2)]))
+}
+
+Dvir_landscape_df <- data.frame(Type=Types, Window=windows, Prop=Proportion)
+head(Dvir_landscape_df)
+# still need to divide by the appropriate number
+Dvir_genome_size <- 189680791
+Dvir_landscape_df$Prop <- Dvir_landscape_df$Prop/Dvir_genome_size
+
+# remove the SINE
+Dvir_landscape_df_mod <- Dvir_landscape_df[which(Dvir_landscape_df$Type!="SINE"),]
+
+Dvir_landscape_df_mod$Type <- factor(Dvir_landscape_df_mod$Type, levels=c("DNA", "DINE", "LTR", "LINE", "Other", "Unknown"))
+
+# stacked barplot
+ggplot(Dvir_landscape_df_mod, aes(fill=Type, y=Prop, x=Window)) +
+  geom_bar(position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF")) +
+  ylim(0,0.0225) +
+  theme_bw()
+
+#### Dvir Y chrom  ####
+
+Dvir_Y_landscape <- read.delim('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/landscape/Feb7/Dvir_Ycontigs.fa.out.landscape.Div.Rclass.tab.sed.txt', header=F, sep="\t")
+types <- Dvir_Y_landscape$V1
+types
+Dvir_Y_landscape$V1 <- NULL
+rownames(Dvir_Y_landscape) <- types
+RC_DINE <- Dvir_Y_landscape["DINE",] + Dvir_Y_landscape["RC",]
+to_remove <- c("DINE", "RC")
+Dvir_Y_landscape_edit <- Dvir_Y_landscape[!row.names(Dvir_Y_landscape)%in%to_remove,]
+Dvir_Y_landscape_edit2 <- rbind(Dvir_Y_landscape_edit, RC_DINE)
+
+# ok, got it.
+
+Types <- c()
+windows <- c()
+Proportion <- c()
+
+for (i in 1:nrow(Dvir_Y_landscape_edit2)) {
+  Types <- c(Types, rep(rownames(Dvir_Y_landscape_edit2)[i], times=40)) 
+  windows <- c(windows, c(1:40))
+  Proportion <- c(Proportion, as.numeric(Dvir_Y_landscape_edit2[i,1:ncol(Dvir_Y_landscape_edit2)]))
+}
+
+Dvir_Y_landscape_df <- data.frame(Type=Types, Window=windows, Prop=Proportion)
+head(Dvir_Y_landscape_df)
+# still need to divide by the appropriate number
+Dvir_Y_size <- 14824018
+Dvir_Y_landscape_df$Prop <- Dvir_Y_landscape_df$Prop/Dvir_Y_size
+
+# remove the SINE
+Dvir_Y_landscape_df_mod <- Dvir_Y_landscape_df[which(Dvir_Y_landscape_df$Type!="SINE"),]
+
+Dvir_Y_landscape_df_mod$Type <- factor(Dvir_Y_landscape_df_mod$Type, levels=c("DNA", "DINE", "LTR", "LINE", "Other", "Unknown"))
+
+# stacked barplot
+ggplot(Dvir_Y_landscape_df_mod, aes(fill=Type, y=Prop, x=Window)) +
+  geom_bar(position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC",  "#00CCFF")) +
+  ylim(0,0.125) +
+  theme_bw()
+
+
+######
+##Dnov
+
+Dnov_landscape <- read.delim('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/landscape/Feb7/Dnov_genome.fa.out.landscape.Div.Rclass.tab.sed.txt', header=F, sep="\t")
+types <- Dnov_landscape$V1
+types
+Dnov_landscape$V1 <- NULL
+rownames(Dnov_landscape) <- types
+RC_DINE <- Dnov_landscape["DINE",] + Dnov_landscape["RC",]
+to_remove <- c("DINE", "RC")
+Dnov_landscape_edit <- Dnov_landscape[!row.names(Dnov_landscape)%in%to_remove,]
+Dnov_landscape_edit2 <- rbind(Dnov_landscape_edit, RC_DINE)
+Dnov_landscape_edit2
+
+# ok, got it.
+
+Types <- c()
+windows <- c()
+Proportion <- c()
+
+for (i in 1:nrow(Dnov_landscape_edit2)) {
+  Types <- c(Types, rep(rownames(Dnov_landscape_edit2)[i], times=40)) 
+  windows <- c(windows, c(1:40))
+  Proportion <- c(Proportion, as.numeric(Dnov_landscape_edit2[i,1:ncol(Dnov_landscape_edit2)]))
+}
+
+Dnov_landscape_df <- data.frame(Type=Types, Window=windows, Prop=Proportion)
+
+# still need to divide by the appropriate number
+Dnov_genome_size <- 182394971
+Dnov_landscape_df$Prop <- Dnov_landscape_df$Prop/Dnov_genome_size
+
+# remove the SINE
+Dnov_landscape_df_mod <- Dnov_landscape_df[which(Dnov_landscape_df$Type!="SINE"),]
+
+Dnov_landscape_df_mod$Type <- factor(Dnov_landscape_df_mod$Type, levels=c("DNA", "DINE", "LTR", "LINE", "Other", "Unknown"))
+
+# stacked barplot
+ggplot(Dnov_landscape_df_mod, aes(fill=Type, y=Prop, x=Window)) +
+  geom_bar(position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF")) +
+  ylim(0,0.0225) +
+  theme_bw()
+
+#### Dnov Y chrom ###
+
+Dnov_Y_landscape <- read.delim('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/landscape/Feb7/Dnov_Ycontigs.fa.out.landscape.Div.Rclass.tab.sed.txt', header=F, sep="\t")
+types <- Dnov_Y_landscape$V1
+
+Dnov_Y_landscape$V1 <- NULL
+rownames(Dnov_Y_landscape) <- types
+RC_DINE <- Dnov_Y_landscape["DINE",] + Dnov_Y_landscape["RC",]
+to_remove <- c("DINE", "RC")
+Dnov_Y_landscape_edit <- Dnov_Y_landscape[!row.names(Dnov_Y_landscape)%in%to_remove,]
+Dnov_Y_landscape_edit2 <- rbind(Dnov_Y_landscape_edit, RC_DINE)
+
+# ok, got it.
+
+Types <- c()
+windows <- c()
+Proportion <- c()
+
+for (i in 1:nrow(Dnov_Y_landscape_edit2)) {
+  Types <- c(Types, rep(rownames(Dnov_Y_landscape_edit2)[i], times=40)) 
+  windows <- c(windows, c(1:40))
+  Proportion <- c(Proportion, as.numeric(Dnov_Y_landscape_edit2[i,1:ncol(Dnov_Y_landscape_edit2)]))
+}
+
+Dnov_Y_landscape_df <- data.frame(Type=Types, Window=windows, Prop=Proportion)
+
+# still need to divide by the appropriate number
+Dnov_Y_size <- 8975053
+Dnov_Y_landscape_df$Prop <- Dnov_Y_landscape_df$Prop/Dnov_Y_size
+
+# remove the SINE
+Dnov_Y_landscape_df_mod <- Dnov_Y_landscape_df[which(Dnov_Y_landscape_df$Type!="SINE"),]
+
+Dnov_Y_landscape_df_mod$Type <- factor(Dnov_Y_landscape_df_mod$Type, levels=c("DNA", "DINE", "LTR", "LINE", "Other", "Unknown"))
+
+# stacked barplot
+ggplot(Dnov_Y_landscape_df_mod, aes(fill=Type, y=Prop, x=Window)) +
+  geom_bar(position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF")) +
+  ylim(0,0.125) +
+  theme_bw()
+
+### Now Dame ####
+Dame_landscape <- read.delim('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/landscape/Feb7/Dame_genome.fa.out.landscape.Div.Rclass.tab.sed.txt', header=F, sep="\t")
+types <- Dame_landscape$V1
+
+Dame_landscape$V1 <- NULL
+rownames(Dame_landscape) <- types
+RC_DINE <- Dame_landscape["DINE",] + Dame_landscape["RC",]
+to_remove <- c("DINE", "RC")
+Dame_landscape_edit <- Dame_landscape[!row.names(Dame_landscape)%in%to_remove,]
+Dame_landscape_edit2 <- rbind(Dame_landscape_edit, RC_DINE)
+
+
+# ok, got it.
+
+Types <- c()
+windows <- c()
+Proportion <- c()
+
+for (i in 1:nrow(Dame_landscape_edit2)) {
+  Types <- c(Types, rep(rownames(Dame_landscape_edit2)[i], times=40)) 
+  windows <- c(windows, c(1:40))
+  Proportion <- c(Proportion, as.numeric(Dame_landscape_edit2[i,1:ncol(Dame_landscape_edit2)]))
+}
+
+Dame_landscape_df <- data.frame(Type=Types, Window=windows, Prop=Proportion)
+
+# still need to divide by the appropriate number
+Dame_genome_size <- 211471196
+Dame_landscape_df$Prop <- Dame_landscape_df$Prop/Dame_genome_size
+
+# remove the SINE
+Dame_landscape_df_mod <- Dame_landscape_df[which(Dame_landscape_df$Type!="SINE"),]
+
+Dame_landscape_df_mod$Type <- factor(Dame_landscape_df_mod$Type, levels=c("DNA", "DINE", "LTR", "LINE", "Other", "Unknown"))
+
+# stacked barplot
+ggplot(Dame_landscape_df_mod, aes(fill=Type, y=Prop, x=Window)) +
+  geom_bar(position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF")) +
+  ylim(0,0.0225) +
+  theme_bw()
+
+
+#### Dame Y ######
+
+Dame_Y_landscape <- read.delim('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/landscape/Feb7/Dame_Ycontigs.fa.out.landscape.Div.Rclass.tab.sed.txt', header=F, sep="\t")
+types <- Dame_Y_landscape$V1
+
+Dame_Y_landscape$V1 <- NULL
+rownames(Dame_Y_landscape) <- types
+RC_DINE <- Dame_Y_landscape["DINE",] + Dame_Y_landscape["RC",]
+to_remove <- c("DINE", "RC")
+Dame_Y_landscape_edit <- Dame_Y_landscape[!row.names(Dame_Y_landscape)%in%to_remove,]
+Dame_Y_landscape_edit2 <- rbind(Dame_Y_landscape_edit, RC_DINE)
+
+# ok, got it.
+
+Types <- c()
+windows <- c()
+Proportion <- c()
+
+for (i in 1:nrow(Dame_Y_landscape_edit2)) {
+  Types <- c(Types, rep(rownames(Dame_Y_landscape_edit2)[i], times=40)) 
+  windows <- c(windows, c(1:40))
+  Proportion <- c(Proportion, as.numeric(Dame_Y_landscape_edit2[i,1:ncol(Dame_Y_landscape_edit2)]))
+}
+
+Dame_Y_landscape_df <- data.frame(Type=Types, Window=windows, Prop=Proportion)
+
+# still need to divide by the appropriate number
+Dame_Y_size <- 24076955
+Dame_Y_landscape_df$Prop <- Dame_Y_landscape_df$Prop/Dame_Y_size
+
+# remove the SINE
+Dame_Y_landscape_df_mod <- Dame_Y_landscape_df[which(Dame_Y_landscape_df$Type!="SINE"),]
+
+Dame_Y_landscape_df_mod$Type <- factor(Dame_Y_landscape_df_mod$Type, levels=c("DNA", "DINE", "LTR", "LINE", "Other", "Unknown"))
+
+# stacked barplot
+ggplot(Dame_Y_landscape_df_mod, aes(fill=Type, y=Prop, x=Window)) +
+  geom_bar(position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF")) +
+  ylim(0,0.125) +
+  theme_bw()
+
+```
+Now, look specifically at LINE differences
+
+```{r}
+Dvir_LINEs <- read.delim('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/landscape/LINEs/Dvir_landscape.LINE.Rfam.txt', header=F, sep="\t")
+
+Dvir_LINEs$V1 <- NULL
+
+Types <- c()
+windows <- c()
+Proportion <- c()
+
+for (i in 1:nrow(Dvir_LINEs)) {
+  Types <- c(Types, rep(as.character(Dvir_LINEs[i,1]), times=40)) 
+  windows <- c(windows, c(1:40))
+  Proportion <- c(Proportion, as.numeric(Dvir_LINEs[i,2:ncol(Dvir_LINEs)]))
+}
+
+Dvir_LINEs_df <- data.frame(Type=Types, Window=windows, Prop=Proportion)
+head(Dvir_LINEs_df)
+# still need to divide by the appropriate number
+Dvir_genome_size <- 189680791
+Dvir_LINEs_df$Prop <- Dvir_LINEs_df$Prop/Dvir_genome_size
+
+# remove the SINE
+Dvir_LINEs_df_mod <- Dvir_LINEs_df[which(Dvir_LINEs_df$Type!="LINE" & Dvir_LINEs_df$Type!="L2" & Dvir_LINEs_df$Type!="R1-LOA" & Dvir_LINEs_df$Type!="I"),]
+
+Dvir_LINEs_df_mod$Type <- factor(Dvir_LINEs_df_mod$Type, levels=c("CR1", "I-Jockey", "Penelope", "R1"))
+
+# stacked barplot
+ggplot(Dvir_LINEs_df_mod, aes(fill=Type, y=Prop, x=Window)) +
+  geom_bar(position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#FFCC00", "#9966FF")) +
+  #ylim(0,0.037) +
+  theme_bw()
+
+## now Dnov
+
+Dnov_LINEs <- read.delim('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/landscape/LINEs/Dnov_landscape.LINE.Rfam.txt', header=F, sep="\t")
+
+Dnov_LINEs$V1 <- NULL
+
+Types <- c()
+windows <- c()
+Proportion <- c()
+
+for (i in 1:nrow(Dnov_LINEs)) {
+  Types <- c(Types, rep(as.character(Dnov_LINEs[i,1]), times=40)) 
+  windows <- c(windows, c(1:40))
+  Proportion <- c(Proportion, as.numeric(Dnov_LINEs[i,2:ncol(Dnov_LINEs)]))
+}
+
+Dnov_LINEs_df <- data.frame(Type=Types, Window=windows, Prop=Proportion)
+head(Dnov_LINEs_df)
+# still need to divide by the appropriate number
+Dnov_genome_size <- 182394971
+Dnov_LINEs_df$Prop <- Dnov_LINEs_df$Prop/Dnov_genome_size
+
+
+# remove the SINE
+Dnov_LINEs_df_mod <- Dnov_LINEs_df[which(Dnov_LINEs_df$Type!="LINE" & Dnov_LINEs_df$Type!="L2" & Dnov_LINEs_df$Type!="R1-LOA" & Dnov_LINEs_df$Type!="I"),]
+
+Dnov_LINEs_df_mod$Type <- factor(Dnov_LINEs_df_mod$Type, levels=c("CR1", "I-Jockey", "Penelope", "R1"))
+
+# stacked barplot
+ggplot(Dnov_LINEs_df_mod, aes(fill=Type, y=Prop, x=Window)) +
+  geom_bar(position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#FFCC00", "#9966FF")) +
+  ylim(0,0.01) +
+  theme_bw()
+
+```
+Now, Y chromosome only annotation: pie charts
+
+```{r}
+
+Dame_Y <- read.csv('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/Ychrom/Dame_Y_masking.csv', header=T)
+Dame_Y
+
+Dame_Y$Type <- factor(Dame_Y$Type, levels=c("DNA", "Helitron/DINEs", "LTR", "LINE", "Other", "Unknown", "Non-TE"))
+
+ggplot (Dame_Y, aes(x = "", y = perc_mask, fill = Type)) +
+  geom_bar(width=1, stat="identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF", "#CCCCCC")) +
+  theme_void()
+
+### everything but Y
+Dame_nonY <- read.csv('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/Ychrom/Dame_allbutY_masking.csv', header=T)
+Dame_nonY
+
+Dame_nonY$Type <- factor(Dame_nonY$Type, levels=c("DNA", "Helitron/DINEs", "LTR", "LINE", "Other", "Unknown", "Non-TE"))
+
+ggplot (Dame_nonY, aes(x = "", y = perc_mask, fill = Type)) +
+  geom_bar(width=1, stat="identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF", "#CCCCCC")) +
+  theme_void()
+
+Dnov_Y <- read.csv('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/Ychrom/Dnov_Y_masking.csv', header=T)
+Dnov_Y
+
+Dnov_Y$Type <- factor(Dame_Y$Type, levels=c("DNA", "Helitron/DINEs", "LTR", "LINE", "Other", "Unknown", "Non-TE"))
+
+ggplot (Dnov_Y, aes(x = "", y = perc_mask, fill = Type)) +
+  geom_bar(width=1, stat="identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF", "#CCCCCC")) +
+  theme_void()
+
+### everything but Y
+
+Dnov_nonY <- read.csv('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/Ychrom/Dnov_allbutY_masking.csv', header=T)
+
+Dnov_nonY$Type <- factor(Dnov_nonY$Type, levels=c("DNA", "Helitron/DINEs", "LTR", "LINE", "Other", "Unknown", "Non-TE"))
+
+ggplot (Dnov_nonY, aes(x = "", y = perc_mask, fill = Type)) +
+  geom_bar(width=1, stat="identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF", "#CCCCCC")) +
+  theme_void()
+
+
+Dvir_Y <- read.csv('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/Ychrom/Dvir_Y_masking.csv', header=T)
+Dvir_Y
+
+Dvir_Y$Type <- factor(Dvir_Y$Type, levels=c("DNA", "Helitron/DINEs", "LTR", "LINE", "Other", "Unknown", "Non-TE"))
+
+ggplot (Dvir_Y, aes(x = "", y = perc_mask, fill = Type)) +
+  geom_bar(width=1, stat="identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF", "#CCCCCC")) +
+  theme_void()
+
+### everything but Y
+
+Dvir_nonY <- read.csv('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/Ychrom/Dvir_allbutY_masking.csv', header=T)
+Dvir_nonY
+
+Dvir_nonY$Type <- factor(Dvir_nonY$Type, levels=c("DNA", "Helitron/DINEs", "LTR", "LINE", "Other", "Unknown", "Non-TE"))
+
+ggplot (Dvir_nonY, aes(x = "", y = perc_mask, fill = Type)) +
+  geom_bar(width=1, stat="identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF", "#CCCCCC")) +
+  theme_void()
+
+```
+Now, chromosome-level TE density in 100 kb windows
+
+```{r}
+
+Dvir_interval_sizes <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dvir_100kb.intervals.sizes', header=F, sep="\t")
+
+Dvir_TEdens <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dvir_100kb.intervals_TE.density', header=F, sep="\t", as.is = T)
+
+Dvir_interval_sizes <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dvir_intervals.sizes', header=F, sep="\t")
+
+Dvir_TEdens <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dvir_intervals_TE.density', header=F, sep="\t", as.is = T)
+
+Dvir_interval_sizes <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dame_100kb.intervals.sizes.redo', header=F, sep="\t")
+
+Dvir_TEdens <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dame_100kb.intervals_TE.density.redo', header=F, sep="\t", as.is = T)
+
+
+sizes <- as.numeric(Dvir_interval_sizes$V2)
+cluster_labels <- Dvir_TEdens$V1
+Dvir_TEdens$V1 <- NULL
+rownames(Dvir_TEdens) <- cluster_labels
+colnames(Dvir_TEdens) <- c("LTR", "RC", "LINE", "DNA", "Unknown")
+head(Dvir_TEdens)
+
+Dvir_TEdens_mx <- data.matrix(Dvir_TEdens)
+
+Dvir_TEdens_norm <- Dvir_TEdens_mx/sizes
+nrow(Dvir_TEdens_norm)
+length(sizes) # need to rerun to get the correct size
+
+head(Dvir_TEdens_norm)
+
+# now need to put into a different format for plotting
+
+Types <- c()
+clusters <- c()
+Proportion <- c()
+IDs <- c()
+
+
+
+for (i in 1:nrow(Dvir_TEdens_norm)) {
+  Types <- c(Types, "LTR", "RC", "LINE", "DNA", "Other", "Unknown")
+  clusters <- c(clusters, rep(rownames(Dvir_TEdens_norm)[i], times=6))
+  Proportion <- c(Proportion, as.numeric(Dvir_TEdens_norm[i,1:ncol(Dvir_TEdens_norm)]))
+  IDs <- c(IDs, rep (i, times=6))
+}
+
+
+#Dvir_TEdens_df <- data.frame(Clusters=clusters, Type=Types, Prop=Proportion, Chr=chrom)
+Dvir_TEdens_df <- data.frame(Clusters=clusters, Type=Types, Prop=Proportion, ID=IDs)
+head(Dvir_TEdens_df)
+
+temp1 <- strsplit(as.character(Dvir_TEdens_df$Clusters), "-")
+Dvir_TEdens_df$Chr <- sapply(temp1, function(x) x[1])
+
+Dvir_TEdens_df$Type <- factor(Dvir_TEdens_df$Type, levels=c("DNA", "RC", "LTR", "LINE", "Other", "Unknown"))
+
+# make a plot for each Chr like piRNA clusters.
+Dvir_TEdens_df_Chr2 <- subset(Dvir_TEdens_df, Chr == "Chr_2")
+head(Dvir_TEdens_df_Chr2)
+
+# keep working on this.
+
+library(ggplot2)
+
+# x should be ID, not cluster. the clusters will be sorted wrong by R.
+
+ggplot(Dvir_TEdens_df_Chr2, aes(x = ID, y = Prop)) +
+  geom_line(aes(color = Type), alpha = 0.7, size = 0.3) +
+  scale_color_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
+  ylim(0,1) +
+  theme_bw() +
+  theme(axis.text.x=element_blank())
+
+Dvir_TEdens_df_Chr3 <- subset(Dvir_TEdens_df, Chr == "Chr_3") 
+
+tail(Dvir_TEdens_df_Chr3)
+
+ggplot(Dvir_TEdens_df_Chr3, aes(x = ID, y = Prop)) +
+  geom_line(aes(color = Type), alpha = 0.7, size = 0.3) +
+  scale_color_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
+  ylim(0,0.8) +
+  theme_bw() +
+  theme(axis.text.x=element_blank())
+
+Dvir_TEdens_df_Chr4 <- subset(Dvir_TEdens_df, Chr == "Chr_4" ) 
+
+ggplot(Dvir_TEdens_df_Chr4, aes(x = ID, y = Prop)) +
+  geom_line(aes(color = Type), alpha = 0.7, size = 0.3) +
+  scale_color_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
+  ylim(0,0.6) +
+  theme_bw() +
+  theme(axis.text.x=element_blank())
+
+Dvir_TEdens_df_Chr5 <- subset(Dvir_TEdens_df, Chr == "Chr_5") 
+
+ggplot(Dvir_TEdens_df_Chr5, aes(x = ID, y = Prop)) +
+  geom_line(aes(color = Type), alpha = 0.7, size = 0.3) +
+  scale_color_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
+  ylim(0,1) +
+  theme_bw() +
+  theme(axis.text.x=element_blank())
+
+Dvir_TEdens_df_Chr6 <- subset(Dvir_TEdens_df, Chr == "Chr_6") 
+
+ggplot(Dvir_TEdens_df_Chr6, aes(x = ID, y = Prop)) +
+  geom_line(aes(color = Type), alpha = 0.7, size = 0.3) +
+  scale_color_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
+  theme_bw() +
+  theme(axis.text.x=element_blank())
+
+Dvir_TEdens_df_ChrX <- subset(Dvir_TEdens_df, Chr == "Chr_X") 
+
+ggplot(Dvir_TEdens_df_ChrX, aes(x = ID, y = Prop)) +
+  geom_line(aes(color = Type), alpha = 0.7, size = 0.3) +
+  scale_color_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
+  ylim(0,1) +
+  theme_bw() +
+  theme(axis.text.x=element_blank())
