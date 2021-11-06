@@ -24,7 +24,9 @@ ggplot() +
   scale_y_continuous(labels = scales::percent) +
   theme_bw() + 
   theme(legend.title=element_blank()) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ylab("Percent of region") +
+  theme(text = element_text(size=15))
 
 
 Dnov_breakpoints <- read.csv('/Users/jullienflynn/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/DAIBAM/Dnov_breakpoints_TEs_forR.csv', header=T)
@@ -35,7 +37,9 @@ ggplot() +
   scale_y_continuous(labels = scales::percent) +
   theme_bw() + 
   theme(legend.title=element_blank()) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+   ylab("Percent of region") +
+  theme(text = element_text(size=15))
 
 Dame_breakpoints <- read.csv('/Users/jullienflynn/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/DAIBAM/Dame_breakpoints_TEs_forR.csv', header=T)
 
@@ -45,7 +49,9 @@ ggplot() +
   scale_y_continuous(labels = scales::percent) +
   theme_bw() + 
   theme(legend.title=element_blank()) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ylab("Percent of region") +
+  theme(text = element_text(size=15))
 
 ```
 Genome-wide TE annotation: pie charts 
@@ -519,13 +525,17 @@ Dvir_interval_sizes <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/
 
 Dvir_TEdens <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dvir_100kb.intervals_TE.density', header=F, sep="\t", as.is = T)
 
-Dvir_interval_sizes <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dvir_intervals.sizes', header=F, sep="\t")
+#Dvir_interval_sizes <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dvir_intervals.sizes', header=F, sep="\t")
 
-Dvir_TEdens <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dvir_intervals_TE.density', header=F, sep="\t", as.is = T)
+#Dvir_TEdens <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dvir_intervals_TE.density', header=F, sep="\t", as.is = T)
 
 Dvir_interval_sizes <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dame_100kb.intervals.sizes.redo', header=F, sep="\t")
 
 Dvir_TEdens <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dame_100kb.intervals_TE.density.redo', header=F, sep="\t", as.is = T)
+
+Dvir_interval_sizes <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dnov_100kb.intervals.sizes', header=F, sep="\t")
+
+Dvir_TEdens <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/piRNA_sequencing/Spring2020/Muller/Dnov_100kb.intervals_TE.density', header=F, sep="\t", as.is = T)
 
 
 sizes <- as.numeric(Dvir_interval_sizes$V2)
@@ -553,7 +563,7 @@ IDs <- c()
 
 
 for (i in 1:nrow(Dvir_TEdens_norm)) {
-  Types <- c(Types, "LTR", "RC", "LINE", "DNA", "Other", "Unknown")
+  Types <- c(Types, "LTR", "LINE", "RC", "DNA", "Other", "Unknown")
   clusters <- c(clusters, rep(rownames(Dvir_TEdens_norm)[i], times=6))
   Proportion <- c(Proportion, as.numeric(Dvir_TEdens_norm[i,1:ncol(Dvir_TEdens_norm)]))
   IDs <- c(IDs, rep (i, times=6))
@@ -586,14 +596,30 @@ ggplot(Dvir_TEdens_df_Chr2, aes(x = ID, y = Prop)) +
   theme_bw() +
   theme(axis.text.x=element_blank())
 
+ggplot() +
+  geom_bar(data = Dvir_TEdens_df_Chr2, mapping = aes(fill=Type, y=Prop, x=ID), position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
+  ylim(0,1.1) +
+  theme_bw() +
+  theme(axis.text.x=element_blank())
+
 Dvir_TEdens_df_Chr3 <- subset(Dvir_TEdens_df, Chr == "Chr_3") 
 
 tail(Dvir_TEdens_df_Chr3)
+# i think there's an issue here - fixed it!
+# Chr_3-28200000-28253658 9251    2153    44795   2308    0       0
 
 ggplot(Dvir_TEdens_df_Chr3, aes(x = ID, y = Prop)) +
   geom_line(aes(color = Type), alpha = 0.7, size = 0.3) +
   scale_color_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
   ylim(0,0.8) +
+  theme_bw() +
+  theme(axis.text.x=element_blank())
+
+ggplot() +
+  geom_bar(data = Dvir_TEdens_df_Chr3, mapping = aes(fill=Type, y=Prop, x=ID), position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
+  ylim(0,1.1) +
   theme_bw() +
   theme(axis.text.x=element_blank())
 
@@ -606,12 +632,26 @@ ggplot(Dvir_TEdens_df_Chr4, aes(x = ID, y = Prop)) +
   theme_bw() +
   theme(axis.text.x=element_blank())
 
+ggplot() +
+  geom_bar(data = Dvir_TEdens_df_Chr4, mapping = aes(fill=Type, y=Prop, x=ID), position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
+  ylim(0,1.1) +
+  theme_bw() +
+  theme(axis.text.x=element_blank())
+
 Dvir_TEdens_df_Chr5 <- subset(Dvir_TEdens_df, Chr == "Chr_5") 
 
 ggplot(Dvir_TEdens_df_Chr5, aes(x = ID, y = Prop)) +
   geom_line(aes(color = Type), alpha = 0.7, size = 0.3) +
   scale_color_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
   ylim(0,1) +
+  theme_bw() +
+  theme(axis.text.x=element_blank())
+
+ggplot() +
+  geom_bar(data = Dvir_TEdens_df_Chr5, mapping = aes(fill=Type, y=Prop, x=ID), position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
+  ylim(0,1.1) +
   theme_bw() +
   theme(axis.text.x=element_blank())
 
@@ -631,3 +671,168 @@ ggplot(Dvir_TEdens_df_ChrX, aes(x = ID, y = Prop)) +
   ylim(0,1) +
   theme_bw() +
   theme(axis.text.x=element_blank())
+
+ggplot() +
+  geom_bar(data = Dvir_TEdens_df_ChrX, mapping = aes(fill=Type, y=Prop, x=ID), position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC","#FFCC00", "#00CCFF")) +
+  ylim(0,1.1) +
+  theme_bw() +
+  theme(axis.text.x=element_blank())
+
+```
+Make histogram of amount of DAIBAM in randomly selected regions in Dnov, of the same size as the breakpoints.
+
+```{r}
+
+dnov_shuffle_daibam <- read.delim(file='~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/DAIBAM/Dnov_shuffle_DAIBAM.amounts', header=F, sep="\t", as.is = T)
+
+head(dnov_shuffle_daibam)
+dnov_shuffle_daibam <- as.vector(dnov_shuffle_daibam$V1)
+
+
+hist(dnov_shuffle_daibam)
+quantile(dnov_shuffle_daibam, probs = c(0.05, 0.95))
+quantile(dnov_shuffle_daibam, probs = c( 0.95, 0.99, 0.999))
+
+```
+Make histograms of ITR array length in the three species  
+
+```{r}
+
+dvir_ITRs <- read.delim("~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/ITRs/Dvir.ITRs.merged.filtered.bed", header=F, sep="\t", as.is = T)
+head(dvir_ITRs)
+
+dvir_tohist <- dvir_ITRs$V4[which(dvir_ITRs$V4<20000)]
+
+hist(dvir_tohist)
+
+dnov_ITRs <- read.delim("~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/ITRs/Dnov.ITRs.merged.filtered.bed", header=F, sep="\t", as.is = T)
+head(dnov_ITRs)
+
+dnov_tohist <- dnov_ITRs$V4[which(dnov_ITRs$V4<20000)]
+hist(dnov_tohist)
+
+dame_ITRs <- read.delim("~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/ITRs/Dame.ITRs.merged.filtered.bed", header=F, sep="\t", as.is = T)
+head(dame_ITRs)
+
+dam_tohist <- dame_ITRs$V4[which(dame_ITRs$V4<20000)]
+#hist(dam_tohist, breaks=c(100,200,500,1000,3000,5000,10000,20000))
+hist(dam_tohist)
+# next make a histogram with ggplot, limiting the x axis so we don't see these outliers
+
+```
+# D. americana Nanopore data 
+
+*First, ML97.5*  
+
+```{r}
+ML975_masking <- read.csv('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/Dame_nanopore/ML975_masking.csv', header=T)
+ML975_masking
+
+ML975_masking$Type <- factor(ML975_masking$Type, levels=c("DNA", "Helitron/DINEs", "LTR", "LINE", "Other", "Unknown", "Non-TE"))
+
+ggplot (ML975_masking, aes(x = "", y = perc_mask, fill = Type)) +
+  geom_bar(width=1, stat="identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF", "#CCCCCC")) +
+  theme_void()
+
+## now the landscape plot ###
+
+ML975_landscape <- read.delim('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/Dame_nanopore/DameNanopore_ML975_canu.ME.fa.out.landscape.Div.Rclass.tab.sed.txt', header=F, sep="\t")
+types <- ML975_landscape$V1
+
+ML975_landscape$V1 <- NULL
+rownames(ML975_landscape) <- types
+RC_DINE <- ML975_landscape["DINE",] + ML975_landscape["RC",]
+to_remove <- c("DINE", "RC")
+ML975_landscape_edit <- ML975_landscape[!row.names(ML975_landscape)%in%to_remove,]
+ML975_landscape_edit2 <- rbind(ML975_landscape_edit, RC_DINE)
+
+# ok, got it.
+
+Types <- c()
+windows <- c()
+Proportion <- c()
+
+for (i in 1:nrow(ML975_landscape_edit2)) {
+  Types <- c(Types, rep(rownames(ML975_landscape_edit2)[i], times=40)) 
+  windows <- c(windows, c(1:40))
+  Proportion <- c(Proportion, as.numeric(ML975_landscape_edit2[i,1:ncol(ML975_landscape_edit2)]))
+}
+
+ML975_landscape_df <- data.frame(Type=Types, Window=windows, Prop=Proportion)
+
+# still need to divide by the appropriate number
+ML975_size <- 236071707
+ML975_landscape_df$Prop <- ML975_landscape_df$Prop/ML975_size
+
+# remove the SINE
+ML975_landscape_df_mod <- ML975_landscape_df[which(ML975_landscape_df$Type!="SINE"),]
+
+ML975_landscape_df_mod$Type <- factor(ML975_landscape_df_mod$Type, levels=c("DNA", "DINE", "LTR", "LINE", "Other", "Unknown"))
+
+# stacked barplot
+ggplot(ML975_landscape_df_mod, aes(fill=Type, y=Prop, x=Window)) +
+  geom_bar(position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF")) +
+  #ylim(0,0.025) +
+  theme_bw()
+
+```
+*SB0206*  
+
+```{r}
+
+SB0206_masking <- read.csv('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/Dame_nanopore/SB0206_masking.csv', header=T)
+SB0206_masking
+
+SB0206_masking$Type <- factor(SB0206_masking$Type, levels=c("DNA", "Helitron/DINEs", "LTR", "LINE", "Other", "Unknown", "Non-TE"))
+
+ggplot (SB0206_masking, aes(x = "", y = perc_mask, fill = Type)) +
+  geom_bar(width=1, stat="identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF", "#CCCCCC")) +
+  theme_void()
+
+## now the landscape plot ###
+
+SB0206_landscape <- read.delim('~/Documents/AndyLab/Proposal/ThesisWork/Chapter2/Comparative_vir-nov/Dame_nanopore/DameNanopore_SB0206_canu.ME.fa.out.landscape.Div.Rclass.tab.sed.txt', header=F, sep="\t")
+types <- SB0206_landscape$V1
+
+SB0206_landscape$V1 <- NULL
+rownames(SB0206_landscape) <- types
+RC_DINE <- SB0206_landscape["DINE",] + SB0206_landscape["RC",]
+to_remove <- c("DINE", "RC")
+SB0206_landscape_edit <- SB0206_landscape[!row.names(SB0206_landscape)%in%to_remove,]
+SB0206_landscape_edit2 <- rbind(SB0206_landscape_edit, RC_DINE)
+
+# ok, got it.
+
+Types <- c()
+windows <- c()
+Proportion <- c()
+
+for (i in 1:nrow(SB0206_landscape_edit2)) {
+  Types <- c(Types, rep(rownames(SB0206_landscape_edit2)[i], times=40)) 
+  windows <- c(windows, c(1:40))
+  Proportion <- c(Proportion, as.numeric(SB0206_landscape_edit2[i,1:ncol(SB0206_landscape_edit2)]))
+}
+
+SB0206_landscape_df <- data.frame(Type=Types, Window=windows, Prop=Proportion)
+
+# still need to divide by the appropriate number
+SB0206_size <- 240772203
+SB0206_landscape_df$Prop <- SB0206_landscape_df$Prop/SB0206_size
+
+# remove the SINE
+SB0206_landscape_df_mod <- SB0206_landscape_df[which(SB0206_landscape_df$Type!="SINE"),]
+
+SB0206_landscape_df_mod$Type <- factor(SB0206_landscape_df_mod$Type, levels=c("DNA", "DINE", "LTR", "LINE", "Other", "Unknown"))
+
+# stacked barplot
+ggplot(SB0206_landscape_df_mod, aes(fill=Type, y=Prop, x=Window)) +
+  geom_bar(position="stack", stat="identity") +
+  scale_fill_manual(values = c("#33CC66", "#FF6600", "#9966FF", "#FF33CC", "#FFCC00", "#00CCFF")) +
+  #ylim(0,0.025) +
+  theme_bw()
